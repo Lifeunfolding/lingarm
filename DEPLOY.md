@@ -6,7 +6,8 @@
 
 ```
 web/
-├── lingarm_portal.html      # 门户主页（入口）
+├── index.html              # 门户主页（入口，GitHub Pages 默认）
+├── lingarm_portal.html      # 门户主页（别名）
 ├── pages.css                # 子页共享样式
 └── pages/
     ├── train.html           # train/ baseline 详情
@@ -56,16 +57,16 @@ server {
     listen 80;
     server_name your-domain.com;   # 没域名就填服务器 IP 或 _
     root /var/www/lingarm;
-    index lingarm_portal.html;
+    index index.html;
 
     # 门户主页
     location = / {
-        try_files /lingarm_portal.html =404;
+        try_files /index.html =404;
     }
 
     # 子页
     location / {
-        try_files $uri $uri/ /lingarm_portal.html;
+        try_files $uri $uri/ /index.html;
     }
 
     # 静态资源缓存
@@ -101,7 +102,7 @@ certbot --nginx -d your-domain.com
 
 | 问题 | 解决 |
 |------|------|
-| 访问空白 | 检查 `root` 路径是否正确，`lingarm_portal.html` 是否在该目录 |
+| 访问空白 | 检查 `root` 路径是否正确，`index.html` 是否在该目录 |
 | 子页 404 | 确认 `pages/` 目录已上传，nginx `try_files` 配置正确 |
 | 样式丢失 | 确认 `pages.css` 在 web 根目录，子页用 `../pages.css` 引用 |
 | 中文乱码 | nginx 默认不指定 charset，HTML 已声明 UTF-8，一般无问题；如有可在 nginx 加 `charset utf-8;` |
