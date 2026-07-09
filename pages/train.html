@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>train/ · baseline v1.0 — 灵臂 LingArm</title>
+<link rel="stylesheet" href="../pages.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo" onclick="location.href='../lingarm_portal.html'"><div class="logo-mark">灵</div><div>灵臂 LingArm<small>TRAIN v1.0</small></div></div>
+  <div class="breadcrumb"><a href="../lingarm_portal.html">门户</a><span class="sep">/</span><a href="../lingarm_portal.html" onclick="setTimeout(()=>{switchPage&&switchPage('page-repo')},100)">资源</a><span class="sep">/</span><span class="cur">train/</span></div>
+  <div class="nav-actions">
+    <a class="btn btn-hf" href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">🤗 模型权重</a>
+    <a class="btn btn-ghost" href="train_1.1.html">下一站: train_1.1 →</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="page-head reveal">
+    <div class="page-tag">RESOURCE · 训练代码 v1.0</div>
+    <h1 class="page-title">train/ <span class="dim">· baseline</span></h1>
+    <p class="page-sub">Frozen VLA + MLP 训练套件，用于 BridgeData 预训练，输出 EEF delta 7D。这是 v1.0 baseline——2022 范式（MSE 回归），作为后续方法论改进的参照基线。权重已发布 HuggingFace。</p>
+    <div class="page-meta">
+      <span class="chip">Qwen3-VL-2B-Instruct</span>
+      <span class="chip teal">BridgeData v2</span>
+      <span class="chip amber">MSE 回归 · 2022 范式</span>
+      <span class="chip green">PAI A10 24GB</span>
+      <span class="chip">PyTorch 2.6 · CUDA 12.6</span>
+    </div>
+  </div>
+
+  <!-- 文件结构 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">STRUCTURE · 文件结构</div><h2 class="sec-title">目录布局</h2></div>
+    <div class="tree"><span class="dir">train/</span>
+├── <span class="file">config.yaml</span>          <span class="com"># 训练配置（Qwen3-VL 版本）</span>
+├── <span class="file">model.py</span>             <span class="com"># FrozenVLA 模型定义</span>
+├── <span class="file">dataset.py</span>           <span class="com"># LeRobot 数据集加载器（VideoCache LRU）</span>
+├── <span class="file">train.py</span>             <span class="com"># 主训练脚本</span>
+├── <span class="file">eval_checkpoint.py</span>   <span class="com"># checkpoint 评估</span>
+├── <span class="file">run.sh</span>               <span class="com"># 启动脚本（支持 --resume）</span>
+├── <span class="file">requirements.txt</span>     <span class="com"># Python 依赖</span>
+└── <span class="file">README.md</span>            <span class="com"># 本套件文档</span></div>
+  </section>
+
+  <!-- 模型架构 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">ARCHITECTURE · 模型架构</div><h2 class="sec-title">Frozen VLA 架构</h2><p class="sec-sub">Qwen3-VL-2B-Instruct 完全冻结，仅训练 MLP Projector 与 Action Head。可训练参数仅 1.3M。</p></div>
+    <div class="arch-box">Input: image (448×448) + instruction (text)
+  ↓
+<span class="frz">[Qwen3-VL-2B-Instruct]              ← ❄️ FROZEN (2,127,532,032)</span>
+<span class="frz">  Vision Encoder (ViT) + LLM (28L, hidden=2048)</span>
+  ↓ last_token_hidden (2048-dim)
+<span class="trn">[MLP Projector]                     ← 🔥 TRAINABLE (1,314,824)</span>
+<span class="trn">  2048 → 512 → 512, GELU + Dropout</span>
+  ↓
+<span class="trn">[Action Head]                       ← 🔥 TRAINABLE (513)</span>
+<span class="trn">  512 → 7</span>
+  ↓
+<span class="out">Output: action (7D) = [dx, dy, dz, ax, ay, az, gripper]</span>
+<span class="out">       ↑ EEF delta · 轴角格式（不是欧拉角！）</span>
+
+可训练参数合计: 1,315,337  (占总量 0.06%)
+总参数量:       2,128,847,369</div>
+    <div class="note warn"><span class="ico">⚠</span><span><strong>Action 格式注意：</strong>模型输出轴角（axis-angle），不是欧拉角！部署时需注意旋转复合方式。<code>translation_scale</code> 与 <code>rotation_scale</code> 是可学习参数，模型自动适配幅度。</span></div>
+  </section>
+
+  <!-- 训练配置 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">CONFIG · 训练配置</div><h2 class="sec-title">config.yaml 关键参数</h2><p class="sec-sub">PAI 环境：PyTorch 2.6.0 + Python 3.10 + CUDA 12.6 + A10 24GB。Qwen3-VL-2B 已下载到本地路径，训练时不联网。</p></div>
+    <div class="code-block">
+      <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">train/config.yaml</span></div>
+      <div class="code-body"><span class="c-com"># Data paths</span>
+data_dir: /mnt/workspace/Dataset/stage_frozen01/full
+output_dir: /mnt/workspace/checkpoints
+
+<span class="c-com"># Model config</span>
+model:
+  llm: <span class="c-str">"/mnt/workspace/Qwen3-VL-2B-Instruct"</span>
+  mlp_hidden_dim: <span class="c-flag">512</span>
+  mlp_depth: <span class="c-flag">2</span>
+  action_dim: <span class="c-flag">7</span>                    <span class="c-com"># EEF delta</span>
+  use_processor: <span class="c-kw">true</span>
+
+<span class="c-com"># Training config</span>
+training:
+  batch_size: <span class="c-flag">32</span>
+  gradient_accumulation_steps: <span class="c-flag">2</span>     <span class="c-com"># 等效 batch=64</span>
+  num_epochs: <span class="c-flag">5</span>
+  learning_rate: <span class="c-flag">1.0e-4</span>
+  weight_decay: <span class="c-flag">1.0e-2</span>
+  warmup_steps: <span class="c-flag">500</span>
+  max_grad_norm: <span class="c-flag">1.0</span>
+  optimizer: <span class="c-str">"adamw"</span>
+  scheduler: <span class="c-str">"cosine"</span>
+  mixed_precision: <span class="c-str">"bf16"</span>          <span class="c-com"># A10 支持</span>
+  gradient_checkpointing: <span class="c-kw">false</span>     <span class="c-com"># 冻结模型不需要</span>
+
+data:
+  image_size: <span class="c-flag">448</span>                 <span class="c-com"># Qwen3-VL 默认</span>
+  fps: <span class="c-flag">5</span>
+  action_normalize: <span class="c-kw">true</span>
+  frame_sampling: <span class="c-str">"all"</span>            <span class="c-com"># 每帧都训练</span>
+  max_cache_episodes: <span class="c-flag">150</span>         <span class="c-com"># VideoCache 上限</span>
+
+logging:
+  wandb_project: <span class="c-str">"lingarm-vla"</span>
+  wandb_run_name: <span class="c-str">"qwen3vl-frozen-mlp-bridge2.6k"</span>
+device: <span class="c-str">"cuda"</span>
+seed: <span class="c-flag">42</span></div>
+    </div>
+  </section>
+
+  <!-- 快速开始 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">QUICKSTART · 快速开始</div><h2 class="sec-title">训练启动</h2></div>
+    <div class="code-block">
+      <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">train/run.sh</span></div>
+      <div class="code-body"><span class="c-com"># 1. 安装依赖</span>
+<span class="c-cmd">cd</span> /mnt/workspace/train
+<span class="c-cmd">pip</span> install -r requirements.txt
+
+<span class="c-com"># 2. 确认数据已就位</span>
+<span class="c-cmd">ls</span> /mnt/workspace/datasets/bridgedata_v2/
+<span class="c-out"># 应看到: meta/, data/chunk-*/, videos/chunk-*/</span>
+
+<span class="c-com"># 3. 启动训练</span>
+<span class="c-cmd">bash</span> run.sh
+
+<span class="c-com"># 或从特定 epoch 恢复</span>
+<span class="c-cmd">bash</span> run.sh <span class="c-flag">--resume</span> /mnt/workspace/checkpoints/epoch_3.pt</div>
+    </div>
+  </section>
+
+  <!-- 已知局限 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">LIMITATIONS · 已知局限</div><h2 class="sec-title">为什么这是 baseline</h2><p class="sec-sub">v1.0 是 2022 范式，存在 4 项致命缺陷。保留它作为参照基线，v1.1 用现代方法重建。</p></div>
+    <table class="cmp-table">
+      <thead><tr><th style="width:30%">缺陷</th><th>说明</th><th style="width:18%">严重性</th></tr></thead>
+      <tbody>
+        <tr><td class="k">MSE 连续回归</td><td class="neutral">无法处理多模态动作分布，会输出物理上不可能的均值动作</td><td class="bad">🔴 致命</td></tr>
+        <tr><td class="k">无 Action Chunking</td><td class="neutral">单步输出 7D，文档写了 K=16 但代码没实现</td><td class="bad">🔴 致命</td></tr>
+        <tr><td class="k">无 rollout 评估</td><td class="neutral">只有 MSE loss（幻觉指标），不知道模型是否学会操作</td><td class="bad">🔴 致命</td></tr>
+        <tr><td class="k">VLM 完全冻结</td><td class="neutral">2B 模型沦为特征提取器，未适配机器人领域</td><td class="neutral">🟡 显著</td></tr>
+      </tbody>
+    </table>
+    <div class="note info"><span class="ico">→</span><span>这些局限在 <a href="train_1.1.html" style="color:var(--accent);font-weight:600">train_1.1/ 双路线套件</a> 中被系统性解决：Route A 离散化+LoRA、Route B 扩散策略、Action Chunking K=16、rollout 评估。</span></div>
+  </section>
+
+  <!-- Bugfix 记录 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">BUGFIX · 修复记录</div><h2 class="sec-title">已验证的修正</h2><p class="sec-sub">v1.0 训练过程中发现并修复的 bug，全部验证通过。</p></div>
+    <table class="cmp-table">
+      <thead><tr><th>Bug</th><th>文件</th><th style="width:14%">状态</th></tr></thead>
+      <tbody>
+        <tr><td class="neutral">数据集路径 <code>data__chunk-*</code> → <code>data/chunk-*</code></td><td class="k">dataset.py</td><td class="good">✅</td></tr>
+        <tr><td class="neutral">视频路径 <code>videos__chunk-*</code> → <code>videos/chunk-*</code></td><td class="k">dataset.py</td><td class="good">✅</td></tr>
+        <tr><td class="neutral">每帧 open/close 视频 → VideoCache LRU</td><td class="k">dataset.py</td><td class="good">✅</td></tr>
+        <tr><td class="neutral">反标准化导致 loss 不收敛</td><td class="k">model.py</td><td class="good">✅ 已移除</td></tr>
+        <tr><td class="neutral">lr_lambda 返回 tensor → math.cos</td><td class="k">train.py</td><td class="good">✅</td></tr>
+        <tr><td class="neutral">GradScaler 无意义空壳 → 条件化</td><td class="k">train.py</td><td class="good">✅</td></tr>
+        <tr><td class="neutral">data_dir 缺 <code>/full</code></td><td class="k">config.yaml</td><td class="good">✅</td></tr>
+        <tr><td class="neutral">load_trainable 重复赋值</td><td class="k">model.py</td><td class="good">✅ 已清理</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 部署衔接 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">DEPLOY · 部署衔接</div><h2 class="sec-title">训练完成后</h2><p class="sec-sub">训练与部署解耦：模型输出 EEF delta，部署端用 IK 转换为关节角。换机械臂只需调校 IK 参数，无需重训。</p></div>
+    <div class="code-block">
+      <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">deploy.py · 推理 + IK 转换</span></div>
+      <div class="code-body"><span class="c-kw">from</span> model <span class="c-kw">import</span> FrozenVLA
+<span class="c-kw">from</span> eef_delta_to_joints <span class="c-kw">import</span> EEFDeltaConverter
+
+<span class="c-com"># 加载模型（只加载 1.3M 可训练参数）</span>
+model = FrozenVLA(llm_name=<span class="c-str">"./Qwen3-VL-2B-Instruct"</span>, ...)
+model.load_trainable(<span class="c-str">"epoch_4.pt"</span>)
+
+<span class="c-com"># 推理 → EEF delta 7D</span>
+eef_delta = model(image, instruction)
+
+<span class="c-com"># 部署端 IK 转换 → 关节角</span>
+converter = EEFDeltaConverter(ik_backend=<span class="c-str">"pybullet"</span>, urdf_path=<span class="c-str">"so101.urdf"</span>)
+target_joints = converter.convert(eef_delta, current_joints)</div>
+    </div>
+  </section>
+
+  <!-- 翻页 -->
+  <div class="pager">
+    <a href="../lingarm_portal.html"><span class="pl">← 返回</span><span class="pt">门户主页</span></a>
+    <a class="next" href="train_1.1.html"><span class="pl">下一站 →</span><span class="pt">train_1.1 · 双路线套件</span></a>
+  </div>
+</div>
+
+<footer class="footer">© 2026 LINGARM · train/ v1.0 baseline · Apache 2.0 · WHITEBOARD v3.0</footer>
+
+<script>
+function revealOnScroll(){ document.querySelectorAll('.reveal').forEach(function(el){ var rect = el.getBoundingClientRect(); if (rect.top < window.innerHeight - 60) el.classList.add('visible'); }); }
+window.addEventListener('scroll', revealOnScroll);
+revealOnScroll();
+</script>
+</body>
+</html>

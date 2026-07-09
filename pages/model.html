@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FrozenVLA-2B · 模型卡 — 灵臂 LingArm</title>
+<link rel="stylesheet" href="../pages.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo" onclick="location.href='../lingarm_portal.html'"><div class="logo-mark">灵</div><div>灵臂 LingArm<small>MODEL CARD</small></div></div>
+  <div class="breadcrumb"><a href="../lingarm_portal.html">门户</a><span class="sep">/</span><a href="../lingarm_portal.html">资源</a><span class="sep">/</span><span class="cur">FrozenVLA-2B</span></div>
+  <div class="nav-actions">
+    <a class="btn btn-hf" href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">🤗 打开 HuggingFace</a>
+    <a class="btn btn-ghost" href="train.html">查看训练代码 →</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="page-head reveal">
+    <div class="page-tag">MODEL · HuggingFace 模型卡</div>
+    <h1 class="page-title">FrozenVLA-2B</h1>
+    <p class="page-sub">轻量级视觉-语言-动作模型——50M 可训练头叠加于冻结的 Qwen3-VL-2B-Instruct 之上，在 BridgeData v2（2,617 episodes）上训练，用于通用机器人操作。Apache 2.0 协议开源。</p>
+    <div class="page-meta">
+      <span class="chip">2.13B Frozen</span>
+      <span class="chip teal">1.3M Trainable</span>
+      <span class="chip amber">BridgeData v2 · 2,617 eps</span>
+      <span class="chip green">~4GB VRAM</span>
+      <span class="chip">Apache 2.0</span>
+    </div>
+  </div>
+
+  <!-- 关键指标 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">METRICS · 关键指标</div></div>
+    <div class="metric-strip">
+      <div class="metric-cell"><div class="num">2.13<span class="unit">B</span></div><div class="lbl">BASE · FROZEN</div></div>
+      <div class="metric-cell"><div class="num">1.3<span class="unit">M</span></div><div class="lbl">TRAINABLE</div></div>
+      <div class="metric-cell"><div class="num">2,617<span class="unit"></span></div><div class="lbl">EPISODES</div></div>
+      <div class="metric-cell"><div class="num">4<span class="unit">/5</span></div><div class="lbl">EPOCHS</div></div>
+      <div class="metric-cell"><div class="num">~4<span class="unit">GB</span></div><div class="lbl">VRAM</div></div>
+      <div class="metric-cell"><div class="num">7<span class="unit">D</span></div><div class="lbl">EEF DELTA</div></div>
+    </div>
+  </section>
+
+  <!-- 架构 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">ARCHITECTURE · 模型架构</div><h2 class="sec-title">Frozen Qwen3-VL + 可训练头</h2></div>
+    <div class="arch-box">┌──────────────────────────────────────────┐
+│         <span class="frz">Qwen3-VL-2B-Instruct (FROZEN)</span>    │
+│  ┌─────────────┐    ┌─────────────────┐  │
+│  │ Vision Enc. │ -> │   LLM (28L)     │  │
+│  └─────────────┘    │  hidden=2048    │  │
+│                     └────────┬────────┘  │
+│                              │           │
+│                     last_token_hidden    │
+│                         (2048-dim)       │
+└──────────────────────────────┼───────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   <span class="trn">MLP Projector</span>     │  ← Trainable (1,314,824)
+                    │  2048 → 512 → 512   │
+                    │  GELU + Dropout     │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   <span class="trn">Action Head</span>       │  ← Trainable (513)
+                    │    512 → 7          │
+                    └──────────┬──────────┘
+                               │
+                    <span class="out">EEF delta: [dx, dy, dz, ax, ay, az, gripper]</span></div>
+    <table class="cmp-table" style="margin-top:16px">
+      <thead><tr><th>组件</th><th style="width:30%">参数</th><th style="width:18%">状态</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Qwen3-VL-2B (Vision + LLM)</td><td class="neutral">2,127,532,032</td><td class="bad">❄️ Frozen</td></tr>
+        <tr><td class="k">MLP Projector</td><td class="neutral">1,314,824</td><td class="good">🔥 Trained</td></tr>
+        <tr><td class="k">Action Head</td><td class="neutral">513</td><td class="good">🔥 Trained</td></tr>
+        <tr><td class="k"><strong>Total</strong></td><td class="neutral"><strong>2,128,847,369</strong></td><td class="neutral">1.3M trainable</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 训练详情 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">TRAINING · 训练详情</div><h2 class="sec-title">训练配置</h2></div>
+    <table class="cmp-table">
+      <thead><tr><th style="width:24%">项目</th><th>详情</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Dataset</td><td class="neutral">BridgeData v2 (LeRobot format)</td></tr>
+        <tr><td class="k">Episodes</td><td class="neutral">2,617</td></tr>
+        <tr><td class="k">Action format</td><td class="neutral">EEF delta 7D: [dx, dy, dz, ax, ay, az, gripper]</td></tr>
+        <tr><td class="k">Action normalization</td><td class="neutral">Z-score (mean/std per dimension)</td></tr>
+        <tr><td class="k">Hardware</td><td class="neutral">Alibaba Cloud PAI · NVIDIA A10 24GB</td></tr>
+        <tr><td class="k">Framework</td><td class="neutral">PyTorch 2.6.0 · Transformers 4.51+ · CUDA 12.6</td></tr>
+        <tr><td class="k">Epochs</td><td class="neutral">4 (of 5 planned)</td></tr>
+        <tr><td class="k">Effective batch size</td><td class="neutral">64 (32 × gradient_accumulation=2)</td></tr>
+        <tr><td class="k">Optimizer</td><td class="neutral">AdamW (lr=1e-4, wd=1e-2)</td></tr>
+        <tr><td class="k">Schedule</td><td class="neutral">Cosine annealing · 500 warmup steps</td></tr>
+        <tr><td class="k">Precision</td><td class="neutral">bfloat16 · gradient clip=1.0</td></tr>
+        <tr><td class="k">Image size</td><td class="neutral">448×448 (Qwen3-VL default)</td></tr>
+        <tr><td class="k">Frames</td><td class="neutral">All frames per episode (frame_sampling=all)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Checkpoint -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">CHECKPOINTS · 训练检查点</div><h2 class="sec-title">Epoch Loss 记录</h2></div>
+    <table class="cmp-table">
+      <thead><tr><th style="width:20%">Epoch</th><th>Approx MSE Loss</th><th>Checkpoint</th></tr></thead>
+      <tbody>
+        <tr><td class="k">1</td><td class="neutral">—</td><td class="neutral"><code>epoch_1.pt</code> (15MB)</td></tr>
+        <tr><td class="k">2</td><td class="neutral">—</td><td class="neutral"><code>epoch_2.pt</code> (15MB)</td></tr>
+        <tr><td class="k">3</td><td class="neutral">—</td><td class="neutral"><code>epoch_3.pt</code> (15MB)</td></tr>
+        <tr><td class="k">4</td><td class="neutral">—</td><td class="neutral"><code>epoch_4.pt</code> (15MB) · <strong style="color:var(--green)">best</strong></td></tr>
+      </tbody>
+    </table>
+    <div class="note warn"><span class="ico">⚠</span><span><strong>关于 loss：</strong>MSE loss 是 v1.0 baseline 的指标，也是已知缺陷——它无法反映模型是否真正学会操作。Phase 0 起改用 sim rollout 成功率评估。详见 <a href="train.html" style="color:var(--accent);font-weight:600">train/ baseline 文档</a>。</span></div>
+  </section>
+
+  <!-- 推理需求 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">INFERENCE · 推理需求</div><h2 class="sec-title">硬件兼容性</h2></div>
+    <table class="cmp-table">
+      <thead><tr><th>平台</th><th style="width:22%">VRAM</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="k">RTX 4060 Laptop 8GB</td><td class="neutral">~4 GB</td><td class="good">✅ Verified · sdpa · bf16</td></tr>
+        <tr><td class="k">A10 24GB</td><td class="neutral">~4 GB</td><td class="good">✅ Training env</td></tr>
+        <tr><td class="k">T4 16GB</td><td class="neutral">~4 GB</td><td class="good">✅ Should work</td></tr>
+      </tbody>
+    </table>
+    <div class="note info"><span class="ico">✦</span><span>VRAM 仅 ~4GB，因为 Qwen3-VL-2B 完全冻结（不存梯度），只有 1.3M 的 MLP+Head 可训练。消费级笔记本 GPU 即可运行。</span></div>
+  </section>
+
+  <!-- 快速开始 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">QUICKSTART · 快速开始</div><h2 class="sec-title">加载并推理</h2></div>
+    <div class="code-block">
+      <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">deploy.py — 拉取 + 推理</span></div>
+      <div class="code-body"><span class="c-com"># 1. 克隆模型仓库</span>
+<span class="c-cmd">git</span> clone https://huggingface.co/LingArm/LingArm_frozen_preview
+<span class="c-cmd">cd</span> LingArm_frozen_preview
+
+<span class="c-com"># 2. 下载基座模型</span>
+<span class="c-cmd">huggingface-cli</span> download Qwen/Qwen3-VL-2B-Instruct <span class="c-flag">--local-dir</span> ./Qwen3-VL-2B-Instruct
+
+<span class="c-com"># 3. 一键推理</span>
+<span class="c-cmd">python</span> deploy.py <span class="c-flag">--checkpoint</span> epoch_4.pt <span class="c-flag">--test-image</span> robot_view.jpg</div>
+    </div>
+    <div class="code-block">
+      <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">inference.py — Python 推理</span></div>
+      <div class="code-body"><span class="c-kw">import</span> torch
+<span class="c-kw">from</span> PIL <span class="c-kw">import</span> Image
+<span class="c-kw">from</span> model <span class="c-kw">import</span> FrozenVLA
+
+<span class="c-com"># 加载模型</span>
+model = FrozenVLA(
+    llm_name=<span class="c-str">"./Qwen3-VL-2B-Instruct"</span>,
+    mlp_hidden_dim=<span class="c-flag">512</span>,
+    mlp_depth=<span class="c-flag">2</span>,
+    action_dim=<span class="c-flag">7</span>,
+    attn_implementation=<span class="c-str">"sdpa"</span>,  <span class="c-com"># "flash_attention_2" on A100/H100</span>
+)
+model.load_trainable(<span class="c-str">"epoch_4.pt"</span>)
+model = model.to(<span class="c-str">"cuda"</span>).eval()
+
+<span class="c-com"># head 转 bf16（匹配 Qwen3-VL 输出 dtype）</span>
+model.mlp_projector = model.mlp_projector.to(dtype=torch.bfloat16)
+model.action_head = model.action_head.to(dtype=torch.bfloat16)
+
+<span class="c-com"># 推理</span>
+image = Image.open(<span class="c-str">"robot_view.jpg"</span>).convert(<span class="c-str">"RGB"</span>)
+instruction = <span class="c-str">"pick up the red block"</span>
+
+<span class="c-kw">with</span> torch.no_grad():
+    action = model([image], [instruction])
+    <span class="c-com"># action: (1, 7) EEF delta [dx,dy,dz,ax,ay,az,gripper]</span>
+    <span class="c-cmd">print</span>(action.float().cpu().numpy())</div>
+    </div>
+  </section>
+
+  <!-- 文件清单 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">FILES · 仓库文件</div><h2 class="sec-title">HuggingFace 仓库内容</h2></div>
+    <table class="cmp-table">
+      <thead><tr><th>文件</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="k"><code>epoch_4.pt</code></td><td class="neutral">Best trained head (MLP + ActionHead, 15MB)</td></tr>
+        <tr><td class="k"><code>epoch_1~3.pt</code></td><td class="neutral">Intermediate checkpoints</td></tr>
+        <tr><td class="k"><code>model.py</code></td><td class="neutral">Full model architecture (FrozenVLA class)</td></tr>
+        <tr><td class="k"><code>config.yaml</code></td><td class="neutral">Training configuration</td></tr>
+        <tr><td class="k"><code>deploy.py</code></td><td class="neutral">One-click deployment + inference script</td></tr>
+        <tr><td class="k"><code>README.md</code></td><td class="neutral">Model card</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 局限 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">LIMITATIONS · 已知局限</div><h2 class="sec-title">诚实说明</h2></div>
+    <div class="grid grid-2">
+      <div class="panel"><div class="panel-idx"><span class="n">01</span></div><div class="panel-title">Action space</div><p class="panel-text">BridgeData EEF delta only——不能直接用于关节空间机器人，需部署端 IK 转换。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">02</span></div><div class="panel-title">Domain</div><p class="panel-text">训练于 BridgeData 桌面操作场景，对新环境的零样本泛化能力有限。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">03</span></div><div class="panel-title">Single image</div><p class="panel-text">仅用当前帧，无视频历史的时序上下文。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">04</span></div><div class="panel-title">Language</div><p class="panel-text">英文指令 only。</p></div>
+    </div>
+    <div class="note info" style="margin-top:16px"><span class="ico">→</span><span>这些局限正是 <a href="train_1.1.html" style="color:var(--accent);font-weight:600">train_1.1 双路线套件</a> 要解决的：Action Chunking K=16 引入时序、Route A/B 处理多模态、Phase 2 集成多数据集与自建真机数据。</span></div>
+  </section>
+
+  <!-- 引用 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">CITATION · 引用</div><h2 class="sec-title">BibTeX</h2></div>
+    <div class="code-block">
+      <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">citation.bib</span></div>
+      <div class="code-body">@misc{frozenvla-2026,
+  title  = {FrozenVLA-2B: Lightweight VLA from Frozen Qwen3-VL on BridgeData},
+  author = {LingArm},
+  year   = {2026},
+  url    = {https://huggingface.co/LingArm/LingArm_frozen_preview}
+}</div>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a href="project.html"><span class="pl">← 上一站</span><span class="pt">project/ · 方案文档</span></a>
+    <a class="next" href="../lingarm_portal.html"><span class="pl">回到 →</span><span class="pt">门户主页</span></a>
+  </div>
+</div>
+
+<footer class="footer">© 2026 LINGARM · FrozenVLA-2B · Apache 2.0 · huggingface.co/LingArm/LingArm_frozen_preview</footer>
+
+<script>
+function revealOnScroll(){ document.querySelectorAll('.reveal').forEach(function(el){ var rect = el.getBoundingClientRect(); if (rect.top < window.innerHeight - 60) el.classList.add('visible'); }); }
+window.addEventListener('scroll', revealOnScroll);
+revealOnScroll();
+</script>
+</body>
+</html>

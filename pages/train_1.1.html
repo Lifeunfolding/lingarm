@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>train_1.1/ · 双路线训练套件 — 灵臂 LingArm</title>
+<link rel="stylesheet" href="../pages.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo" onclick="location.href='../lingarm_portal.html'"><div class="logo-mark">灵</div><div>灵臂 LingArm<small>TRAIN v1.1</small></div></div>
+  <div class="breadcrumb"><a href="../lingarm_portal.html">门户</a><span class="sep">/</span><a href="../lingarm_portal.html">资源</a><span class="sep">/</span><span class="cur">train_1.1/</span></div>
+  <div class="nav-actions">
+    <a class="btn btn-hf" href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">🤗 模型权重</a>
+    <a class="btn btn-ghost" href="project.html">下一站: 方案文档 →</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="page-head reveal">
+    <div class="page-tag">RESOURCE · 训练代码 v1.1 · 双路线</div>
+    <h1 class="page-title">train_1.1/ <span class="dim">· 双路线套件</span></h1>
+    <p class="page-sub">实现追赶报告 Phase 1 的两条并行路线——Route A 离散化+LoRA（对标 OpenVLA）、Route B 扩散策略（对标 Diffusion Policy）。第 8 周根据实物评估结果二选一。基座模型统一为 Qwen3-VL-2B-Instruct。</p>
+    <div class="page-meta">
+      <span class="chip blue">Route A · 离散化+LoRA</span>
+      <span class="chip teal">Route B · 扩散策略</span>
+      <span class="chip amber">Action Chunking K=16</span>
+      <span class="chip green">rollout 评估</span>
+    </div>
+  </div>
+
+  <!-- 为什么有 v1.1 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">WHY · 为什么有 train_1.1</div><h2 class="sec-title">从 2022 范式到 2026 前沿</h2></div>
+    <div class="panel">
+      <p class="panel-text"><a href="train.html" style="color:var(--accent);font-weight:600">train/ (v1.0)</a> 是 <strong>Frozen VLM + MLP + MSE 回归</strong>的 2022 范式，存在致命缺陷：MSE 无法处理多模态动作分布、无 Action Chunking、无 rollout 评估、VLM 完全冻结。<code>train_1.1</code> 用现代动作生成方法重建，建立可验证的方法论优势。</p>
+    </div>
+    <div class="note warn"><span class="ico">⚠</span><span><strong>基座模型说明：</strong>统一使用 <strong>Qwen3-VL-2B-Instruct</strong>（不是 Qwen2.5 / Qwen2-VL 系列）。Qwen3-VL 自带 Vision Encoder + LLM，不需要额外加载 SigLIP / CLIP。所有代码和文档统一使用 <code>Qwen/Qwen3-VL-2B-Instruct</code>。</span></div>
+  </section>
+
+  <!-- 文件结构 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">STRUCTURE · 文件结构</div><h2 class="sec-title">目录布局</h2></div>
+    <div class="tree"><span class="dir">train_1.1/</span>
+├── README.md                      <span class="com"># 本文档</span>
+├── config_discrete.yaml           <span class="com"># Route A 配置</span>
+├── config_diffusion.yaml          <span class="com"># Route B 配置</span>
+├── requirements.txt
+├── run_discrete.sh                <span class="com"># Route A 启动</span>
+├── run_diffusion.sh               <span class="com"># Route B 启动</span>
+├── <span class="file">data.py</span>                        <span class="com"># ⚠️ 占位符（见下方说明）</span>
+│
+├── <span class="dir">models/</span>
+│   ├── __init__.py
+│   ├── base.py                    <span class="com"># Qwen3-VL 共享编码器 (frozen/lora 双模式)</span>
+│   ├── discrete_vla.py            <span class="com"># Route A: 离散化 VLA + LoRA + Chunking</span>
+│   ├── diffusion_vla.py           <span class="com"># Route B: 扩散 VLA (冻结 + DDPM)</span>
+│   ├── action_tokenizer.py        <span class="com"># 7D ↔ 1792 tokens (uniform/kmeans)</span>
+│   └── lora_utils.py              <span class="com"># 手动 LoRA 实现 (不依赖 peft)</span>
+│
+├── <span class="dir">diffusion/</span>
+│   ├── __init__.py
+│   ├── scheduler.py               <span class="com"># DDPM/DDIM (cosine schedule, T=100)</span>
+│   └── denoiser.py                <span class="com"># UNet1D + Transformer (FiLM 条件注入)</span>
+│
+├── train_discrete.py              <span class="com"># Route A 训练主脚本</span>
+├── train_diffusion.py             <span class="com"># Route B 训练主脚本</span>
+│
+├── <span class="dir">eval/</span>
+│   ├── __init__.py
+│   ├── rollout_sim.py             <span class="com"># PyBullet rollout 评估 (P0.2-P0.4)</span>
+│   └── action_stats.py            <span class="com"># 动作分布统计分析 (P0.5)</span>
+│
+└── <span class="dir">utils/</span>
+    ├── __init__.py
+    ├── checkpoint.py              <span class="com"># save/load/keep_best_n</span>
+    ├── chunking.py                <span class="com"># Action Chunking + 时序集成</span>
+    └── logging_utils.py           <span class="com"># wandb + 控制台日志</span></div>
+  </section>
+
+  <!-- Route A -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">ROUTE A · 离散化 + LoRA</div><h2 class="sec-title">对标 OpenVLA</h2></div>
+    <table class="cmp-table">
+      <thead><tr><th style="width:28%">组件</th><th>实现</th><th style="width:14%">对应任务</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Action Tokenizer</td><td class="neutral"><code>models/action_tokenizer.py</code> — 7D → 256 bins/维 = 1792 tokens</td><td class="dim-col">P1A.1</td></tr>
+        <tr><td class="k">离散 Action Head</td><td class="neutral"><code>models/discrete_vla.py</code> — 输出 (B, K=16, 7, 256) 逐维 logits</td><td class="dim-col">P1A.2</td></tr>
+        <tr><td class="k">LoRA 微调</td><td class="neutral"><code>models/lora_utils.py</code> + <code>base.py</code> — Q/K/V/O 加 LoRA (rank=64)</td><td class="dim-col">P1A.3</td></tr>
+        <tr><td class="k">Action Chunking</td><td class="neutral"><code>utils/chunking.py</code> — K=16，训练 + 推理时序集成</td><td class="dim-col">P1A.4</td></tr>
+        <tr><td class="k">训练脚本</td><td class="neutral"><code>train_discrete.py</code> — 逐维交叉熵 loss</td><td class="dim-col">P1A.5</td></tr>
+      </tbody>
+    </table>
+    <div class="panel">
+      <div class="panel-idx"><span class="n">// LOSS</span></div>
+      <p class="panel-text"><code>L = (1/D) Σ_d CE(logits[:,:,:,d], target_tokens[:,:,d])</code>，对所有 K 步求和。</p>
+      <div class="panel-idx" style="margin-top:14px"><span class="n">// INFERENCE</span></div>
+      <p class="panel-text">argmax/softmax → decode → (B, K, 7) 连续动作 chunk → temporal ensembling 平滑。</p>
+    </div>
+  </section>
+
+  <!-- Route B -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">ROUTE B · 扩散策略</div><h2 class="sec-title">对标 Diffusion Policy / Octo</h2></div>
+    <table class="cmp-table">
+      <thead><tr><th style="width:28%">组件</th><th>实现</th><th style="width:14%">对应任务</th></tr></thead>
+      <tbody>
+        <tr><td class="k">DDPM/DDIM 调度器</td><td class="neutral"><code>diffusion/scheduler.py</code> — cosine, T=100, DDIM 20 步</td><td class="dim-col">P1B.2</td></tr>
+        <tr><td class="k">1D U-Net Denoiser</td><td class="neutral"><code>diffusion/denoiser.py</code> — FiLM 条件注入 + timestep embedding</td><td class="dim-col">P1B.1</td></tr>
+        <tr><td class="k">扩散 VLA</td><td class="neutral"><code>models/diffusion_vla.py</code> — 冻结 Qwen3-VL + UNet1D</td><td class="dim-col">P1B.4</td></tr>
+        <tr><td class="k">Action Chunking</td><td class="neutral">扩散在 (B, K=16, 7) 上操作</td><td class="dim-col">P1B.3</td></tr>
+        <tr><td class="k">训练脚本</td><td class="neutral"><code>train_diffusion.py</code> — epsilon-prediction MSE loss</td><td class="dim-col">P1B.5</td></tr>
+      </tbody>
+    </table>
+    <div class="panel">
+      <div class="panel-idx"><span class="n">// LOSS</span></div>
+      <p class="panel-text"><code>L = MSE(denoiser(x_t, t, cond), ε)</code>，其中 <code>x_t = √ᾱ_t · x_0 + √(1-ᾱ_t) · ε</code></p>
+      <div class="panel-idx" style="margin-top:14px"><span class="n">// INFERENCE</span></div>
+      <p class="panel-text">从纯噪声开始，DDIM 20 步去噪 → (B, K, 7) 动作 chunk。</p>
+    </div>
+  </section>
+
+  <!-- 架构对比图 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">COMPARE · 架构对比</div><h2 class="sec-title">Route A vs Route B 数据流</h2></div>
+    <div class="arch-box">                    <span class="trn">Route A (Discrete+LoRA)</span>        <span class="out">Route B (Diffusion)</span>
+                    ────────────────────────       ───────────────────
+Image+Instruction   → Qwen3-VL-2B-Instruct         → Qwen3-VL-2B-Instruct
+                      + LoRA (Q/K/V/O)               (全冻结)
+                            ↓                              ↓
+                    MLP Projector (可训练)          hidden state (条件)
+                            ↓                              ↓ (FiLM 注入)
+                    Action Head                     <span class="trn">UNet1D Denoiser (可训练)</span>
+                    (K×7×256 logits)                ↕ DDPM 加噪/去噪
+                            ↓                              ↓
+                    argmax + decode                 DDIM 20步采样
+                            ↓                              ↓
+                    (B, K=16, 7) 动作 chunk         (B, K=16, 7) 动作 chunk
+                            ↓                              ↓
+                    Temporal Ensembling             Temporal Ensembling
+                            ↓                              ↓
+                    连续动作流                       连续动作流
+
+训练参数量          LoRA (~几M) + MLP + Head         UNet1D (~几M)
+                    Qwen3-VL 部分解冻                Qwen3-VL 全冻结</div>
+  </section>
+
+  <!-- 决策表 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">DECISION · Route A vs B</div><h2 class="sec-title">决策表</h2><p class="sec-sub">Phase 1 结束时（第 8 周）根据实物评估结果二选一，被淘汰的路线只保留文档。</p></div>
+    <table class="cmp-table">
+      <thead><tr><th style="width:24%">维度</th><th style="width:38%">Route A · 离散化+LoRA</th><th style="width:38%">Route B · 扩散策略</th></tr></thead>
+      <tbody>
+        <tr><td class="k">实现复杂度</td><td class="good">低 (2 周)</td><td class="neutral">中 (4 周)</td></tr>
+        <tr><td class="k">Sim rollout 成功率</td><td class="dim-col">— 待实测 —</td><td class="dim-col">— 待实测 —</td></tr>
+        <tr><td class="k">推理速度 (A10)</td><td class="dim-col">— 待实测 —</td><td class="dim-col">— 待实测 —</td></tr>
+        <tr><td class="k">动作多样性</td><td class="good">离散化天然支持</td><td class="good">扩散天然支持</td></tr>
+        <tr><td class="k">动作平滑度</td><td class="neutral">可能需后处理</td><td class="good">天然平滑</td></tr>
+        <tr><td class="k">K3 部署</td><td class="bad">1792 softmax 可能慢</td><td class="bad">DDIM 多步可能超时</td></tr>
+        <tr><td class="k">社区资源</td><td class="good">OpenVLA 全家桶</td><td class="good">Diffusion Policy, Octo</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- data.py 说明 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">DATA · data.py 占位符</div><h2 class="sec-title">为什么 data.py 留空</h2><p class="sec-sub">data.py 当前是占位符，<code>build_dataloader()</code> 会抛 NotImplementedError。故意不写实现，只冻结接口契约。</p></div>
+    <div class="panel">
+      <div class="panel-idx"><span class="n">// 原因</span></div>
+      <p class="panel-text">追赶报告对数据做了几项尚未落地的改动：P0.1 按 episode 80/20 划分、P2.1 多数据集集成（RH20T/DROID/OXE）、P2.2 加权采样。数据 schema 可能从单数据集变成多源混合，action 维度也可能扩展。因此只冻结接口，不写实现。</p>
+    </div>
+    <div class="panel">
+      <div class="panel-idx"><span class="n">// 接口契约</span></div>
+      <p class="panel-text" style="margin-bottom:12px"><code>build_dataloader(config)</code> 必须返回 <code>(train_loader, val_loader)</code>，每个 batch 必须包含：</p>
+      <table class="cmp-table">
+        <thead><tr><th style="width:24%">Key</th><th style="width:30%">类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="k">image</td><td class="neutral">List[PIL.Image]</td><td class="neutral">交由 Qwen3-VL AutoProcessor 处理</td></tr>
+          <tr><td class="k">instruction</td><td class="neutral">List[str]</td><td class="neutral">自然语言任务指令</td></tr>
+          <tr><td class="k">action</td><td class="neutral">Tensor (B, 7)</td><td class="neutral">当前帧动作（标准化后）</td></tr>
+          <tr><td class="k">action_chunk</td><td class="neutral">Tensor (B, K=16, 7)</td><td class="neutral">未来 K 步动作 chunk</td></tr>
+          <tr><td class="k">raw_action</td><td class="neutral">Tensor (B, 7)</td><td class="neutral">原始未标准化（评估用）</td></tr>
+          <tr><td class="k">frame_index</td><td class="neutral">List[int]</td><td class="neutral">帧索引</td></tr>
+          <tr><td class="k">episode_index</td><td class="neutral">List[int]</td><td class="neutral">episode 索引</td></tr>
+        </tbody>
+      </table>
+      <p class="panel-text" style="margin-top:12px">dataset 对象需暴露 <code>action_mean</code> / <code>action_std</code>（np.ndarray, shape (7,)）。填充后 <code>train_discrete.py</code> / <code>train_diffusion.py</code> 无需修改即可运行。</p>
+    </div>
+  </section>
+
+  <!-- 注意事项 -->
+  <section class="sec reveal">
+    <div class="sec-head"><div class="sec-tag">NOTES · 注意事项</div><h2 class="sec-title">关键约定</h2></div>
+    <div class="grid grid-2">
+      <div class="panel"><div class="panel-idx"><span class="n">01</span></div><div class="panel-title">基座模型</div><p class="panel-text">统一 Qwen3-VL-2B-Instruct，不要用 Qwen2.5 / Qwen2-VL。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">02</span></div><div class="panel-title">data.py 是占位符</div><p class="panel-text">训练前必须先填充实现，参照 <code>train/dataset.py</code>。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">03</span></div><div class="panel-title">Action 格式</div><p class="panel-text">7D EEF delta <code>[dx,dy,dz,ax,ay,az,gripper]</code>，轴角格式。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">04</span></div><div class="panel-title">Action Chunking</div><p class="panel-text">K=16，chunk[t]=[a_t,...,a_{t+15}]，超界 pad。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">05</span></div><div class="panel-title">评估优先</div><p class="panel-text">不要只看 loss，必须用 <code>eval/rollout_sim.py</code> 跑成功率。</p></div>
+      <div class="panel"><div class="panel-idx"><span class="n">06</span></div><div class="panel-title">checkpoint</div><p class="panel-text">只保存可训练参数（LoRA adapter / denoiser），不保存冻结的 Qwen3-VL。</p></div>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a href="train.html"><span class="pl">← 上一站</span><span class="pt">train/ · baseline v1.0</span></a>
+    <a class="next" href="project.html"><span class="pl">下一站 →</span><span class="pt">project/ · 方案文档</span></a>
+  </div>
+</div>
+
+<footer class="footer">© 2026 LINGARM · train_1.1/ 双路线套件 · Apache 2.0 · WHITEBOARD v3.0</footer>
+
+<script>
+function revealOnScroll(){ document.querySelectorAll('.reveal').forEach(function(el){ var rect = el.getBoundingClientRect(); if (rect.top < window.innerHeight - 60) el.classList.add('visible'); }); }
+window.addEventListener('scroll', revealOnScroll);
+revealOnScroll();
+</script>
+</body>
+</html>

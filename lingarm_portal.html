@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵臂 LingArm · 低成本具身智能 VLA 研究系统</title>
+<meta name="description" content="LingArm —— 面向桌面级机械臂的低成本视觉-语言-动作（VLA）研究系统。¥2000 级硬件打通数据—训练—部署全链路，多线算力并行，既国产替代也前沿训练。">
+<style>
+/* =========================================================
+   灵臂 LingArm 门户 v3.0 —— 白板视觉 · 清秀科技风
+   设计语言: 暖白底 · 细网格 · 清秀字体 · 索引编号 · 单色点缀
+   对标:     Notion / Linear Docs / Vercel Light / Apple Minimal
+   ========================================================= */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #fafaf9;
+  --paper: #ffffff;
+  --paper-2: #f5f5f4;
+  --paper-3: #eeece9;
+  --ink: #1c1917;
+  --ink-2: #57534e;
+  --ink-3: #a8a29e;
+  --line: #e7e5e4;
+  --line-2: #d6d3d1;
+  --accent: #2563eb;
+  --accent-2: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --accent-line: #bfdbfe;
+  --teal: #0d9488;
+  --teal-soft: #f0fdfa;
+  --teal-line: #99f6e4;
+  --amber: #b45309;
+  --amber-soft: #fffbeb;
+  --amber-line: #fde68a;
+  --green: #15803d;
+  --green-soft: #f0fdf4;
+  --rose: #be123c;
+  --rose-soft: #fff1f2;
+  --shadow-1: 0 1px 2px rgba(28,25,23,0.04), 0 1px 3px rgba(28,25,23,0.06);
+  --shadow-2: 0 4px 6px -1px rgba(28,25,23,0.06), 0 10px 24px -4px rgba(28,25,23,0.08);
+  --shadow-3: 0 8px 16px -4px rgba(28,25,23,0.08), 0 20px 40px -8px rgba(28,25,23,0.10);
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --mono: "JetBrains Mono","SF Mono","Cascadia Code","Consolas","Courier New",monospace;
+  --sans: "Inter",-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei","Segoe UI",sans-serif;
+  --serif: "Noto Serif SC","Source Han Serif SC",Georgia,serif;
+}
+html { scroll-behavior: smooth; font-size: 16px; }
+body { font-family: var(--sans); color: var(--ink); line-height: 1.7; overflow-x: hidden; background: var(--bg); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-weight: 400; }
+::selection { background: var(--accent-soft); color: var(--accent-2); }
+a { color: inherit; text-decoration: none; }
+code, .mono { font-family: var(--mono); }
+/* 白板网格纹理 */
+body::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(circle, rgba(28,25,23,0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 20%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 20%, transparent 90%); }
+
+/* ============ NAVBAR ============ */
+.navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 0 32px; display: flex; justify-content: space-between; align-items: center; height: 60px; background: rgba(250,250,249,0.78); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid var(--line); transition: all .3s var(--ease); }
+.navbar.scrolled { background: rgba(250,250,249,0.94); border-bottom-color: var(--line-2); box-shadow: var(--shadow-1); }
+.logo { display: flex; align-items: center; gap: 11px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer; color: var(--ink); }
+.logo-mark { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 16px; font-weight: 700; color: var(--paper); box-shadow: var(--shadow-1); }
+.logo small { font-family: var(--mono); font-size: 9.5px; font-weight: 500; color: var(--ink-3); letter-spacing: 0.1em; display: block; margin-top: 1px; }
+.nav-menu { display: flex; gap: 2px; list-style: none; counter-reset: navcount; }
+.nav-item { position: relative; padding: 7px 13px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; font-weight: 500; border-radius: var(--r-sm); transition: all .2s var(--ease); counter-increment: navcount; }
+.nav-item::before { content: counter(navcount, decimal-leading-zero); font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-right: 6px; transition: color .2s; }
+.nav-item:hover { color: var(--ink); background: var(--paper-2); }
+.nav-item:hover::before { color: var(--accent); }
+.nav-item.active { color: var(--accent); background: var(--accent-soft); }
+.nav-item.active::before { color: var(--accent); }
+.nav-actions { display: flex; gap: 8px; align-items: center; }
+.btn { padding: 8px 16px; border: 1px solid var(--line-2); border-radius: var(--r-sm); cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: all .2s var(--ease); background: var(--paper); color: var(--ink); display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.01em; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
+.btn-ghost:hover { color: var(--ink); background: var(--paper-2); }
+.btn-primary { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 500; }
+.btn-primary:hover { background: var(--accent); border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.btn-lg { padding: 12px 24px; font-size: 14px; }
+.btn-hf { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.btn-hf:hover { background: var(--accent-2); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.icon-btn { width: 34px; height: 34px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--ink-2); transition: all .2s var(--ease); }
+.icon-btn:hover { background: var(--paper-2); color: var(--ink); border-color: var(--line); }
+.status-pill { display: none; align-items: center; gap: 7px; padding: 4px 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r-xs); background: var(--paper); }
+.status-pill.show { display: inline-flex; }
+.status-pill .pulse { width: 6px; height: 6px; background: var(--green); border-radius: 50%; box-shadow: 0 0 0 3px var(--green-soft); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ============ PAGE ============ */
+.page { display: none; position: relative; z-index: 1; padding-top: 60px; animation: fadeIn .45s var(--ease); }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ============ HERO ============ */
+.hero { min-height: calc(100vh - 60px); position: relative; display: flex; align-items: center; padding: 80px 32px 100px; overflow: hidden; background: radial-gradient(ellipse 50% 40% at 15% 10%, var(--accent-soft), transparent 60%), radial-gradient(ellipse 40% 40% at 90% 25%, var(--teal-soft), transparent 60%), var(--bg); }
+.hero-inner { width: 100%; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; position: relative; z-index: 2; }
+.hero-left { max-width: 600px; }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 9px; padding: 5px 11px; border: 1px solid var(--accent-line); border-radius: var(--r-xs); font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: 0.1em; background: var(--accent-soft); margin-bottom: 26px; }
+.hero-eyebrow .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+.hero h1 { font-family: var(--serif); font-size: clamp(36px, 5.2vw, 56px); font-weight: 600; line-height: 1.12; letter-spacing: -0.02em; margin-bottom: 22px; color: var(--ink); }
+.hero h1 .accent { color: var(--accent); }
+.hero h1 .thin { font-weight: 400; color: var(--ink-2); }
+.hero .lead { font-size: 16.5px; color: var(--ink-2); line-height: 1.8; margin-bottom: 30px; max-width: 540px; }
+.hero .lead strong { color: var(--ink); font-weight: 600; }
+.hero-specs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 34px; }
+.spec-chip { font-family: var(--mono); font-size: 11px; color: var(--ink-2); padding: 5px 10px; border: 1px solid var(--line-2); border-left: 2px solid var(--accent); border-radius: var(--r-xs); background: var(--paper); letter-spacing: 0.03em; }
+.spec-chip:nth-child(2n) { border-left-color: var(--teal); }
+.spec-chip:nth-child(3n) { border-left-color: var(--amber); }
+.hero-cta { display: flex; gap: 11px; flex-wrap: wrap; align-items: center; }
+.link-arrow { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; padding: 8px 0; border-bottom: 1px solid transparent; transition: all .2s; cursor: pointer; font-weight: 500; }
+.link-arrow:hover { color: var(--accent); border-bottom-color: var(--accent); gap: 10px; }
+
+/* hero 右侧 —— 训练遥测面板（真实数据） */
+.hero-panel { background: var(--paper); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow-3); overflow: hidden; position: relative; }
+.hero-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--teal)); }
+.panel-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper-2); }
+.panel-head .title { font-family: var(--mono); font-size: 11px; color: var(--ink-2); letter-spacing: 0.06em; }
+.panel-head .dots { display: flex; gap: 5px; }
+.panel-head .dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); }
+.panel-head .dots span:nth-child(1){ background: #f87171; }
+.panel-head .dots span:nth-child(2){ background: #fbbf24; }
+.panel-head .dots span:nth-child(3){ background: #34d399; }
+.panel-body { padding: 22px; }
+.chip-id { font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 3px; }
+.chip-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-bottom: 20px; letter-spacing: 0.04em; }
+.cluster-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.cluster { padding: 13px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--paper); position: relative; }
+.cluster .k { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); letter-spacing: 0.08em; margin-bottom: 5px; }
+.cluster .v { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--ink); }
+.cluster.c1 { border-color: var(--accent-line); background: var(--accent-soft); }
+.cluster.c1 .v { color: var(--accent-2); }
+.cluster.c2 { border-color: var(--teal-line); background: var(--teal-soft); }
+.cluster.c2 .v { color: var(--teal); }
+.cluster.c3 { border-color: var(--amber-line); background: var(--amber-soft); }
+.cluster.c3 .v { color: var(--amber); }
+.ticker-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); font-family: var(--mono); font-size: 11px; }
+.ticker-row .lbl { color: var(--ink-3); }
+.ticker-row .val { color: var(--green); font-weight: 600; }
+.bar { height: 4px; background: var(--paper-3); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.bus-line { margin-top: 14px; padding: 10px; border: 1px dashed var(--accent-line); border-radius: var(--r-sm); text-align: center; font-family: var(--mono); font-size: 10px; color: var(--accent); background: var(--accent-soft); }
+
+/* ============ SECTION ============ */
+.section { position: relative; padding: 96px 32px; z-index: 1; }
+.section-inner { max-width: 1200px; margin: 0 auto; }
+.section-head { margin-bottom: 52px; max-width: 720px; }
+.section-head.center { margin-left: auto; margin-right: auto; text-align: center; }
+.section-tag { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: 0.12em; border: 1px solid var(--accent-line); border-radius: var(--r-xs); background: var(--accent-soft); margin-bottom: 18px; }
+.section-tag::before { content: ''; width: 14px; height: 1px; background: var(--accent); }
+.section-title { font-family: var(--serif); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.18; margin-bottom: 14px; color: var(--ink); }
+.section-title .dim { color: var(--ink-3); font-weight: 400; }
+.section-sub { color: var(--ink-2); font-size: 16px; line-height: 1.75; }
+.section-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--line-2), transparent); margin: 0 32px; }
+
+/* ============ PANEL / CARD ============ */
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-md); padding: 28px; transition: all .3s var(--ease); position: relative; box-shadow: var(--shadow-1); }
+.panel:hover { border-color: var(--line-2); box-shadow: var(--shadow-2); transform: translateY(-2px); }
+.panel-idx { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.1em; margin-bottom: 14px; }
+.panel-idx .n { color: var(--accent); }
+.panel-title { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 9px; color: var(--ink); }
+.panel-text { color: var(--ink-2); font-size: 14px; line-height: 1.75; }
+.panel-text strong { color: var(--ink); font-weight: 600; }
+.tagline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.tag { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); padding: 3px 8px; border: 1px solid var(--line-2); border-radius: var(--r-xs); background: var(--paper-2); letter-spacing: 0.02em; }
+.tag.blue { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.tag.teal { color: var(--teal); border-color: var(--teal-line); background: var(--teal-soft); }
+.tag.amber { color: var(--amber); border-color: var(--amber-line); background: var(--amber-soft); }
+.tag.green { color: var(--green); border-color: #bbf7d0; background: var(--green-soft); }
+.grid { display: grid; gap: 20px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-auto { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+/* ============ MISSION ============ */
+.mission-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.mission-card { padding: 30px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper); transition: all .3s var(--ease); position: relative; overflow: hidden; }
+.mission-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease); }
+.mission-card:hover::before { transform: scaleX(1); }
+.mission-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
+.mission-card .num { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.12em; margin-bottom: 16px; }
+.mission-card .num b { color: var(--accent); }
+.mission-card h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 11px; color: var(--ink); }
+.mission-card p { font-size: 14px; color: var(--ink-2); line-height: 1.75; }
+
+/* ============ TIMELINE (项目历程) ============ */
+.timeline { position: relative; max-width: 880px; margin: 0 auto; padding-left: 38px; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 1px; background: linear-gradient(180deg, var(--accent), var(--teal), var(--amber), var(--line-2)); }
+.tl-item { position: relative; padding-bottom: 34px; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before { content: ''; position: absolute; left: -36px; top: 5px; width: 11px; height: 11px; background: var(--paper); border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px var(--bg); }
+.tl-item.done::before { background: var(--accent); }
+.tl-item.now::before { background: var(--amber); border-color: var(--amber); box-shadow: 0 0 0 4px var(--bg), 0 0 0 7px var(--amber-soft); }
+.tl-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; flex-wrap: wrap; }
+.tl-date { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.05em; font-weight: 600; }
+.tl-badge { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: var(--r-xs); letter-spacing: 0.04em; font-weight: 600; }
+.tl-badge.done { color: var(--green); background: var(--green-soft); border: 1px solid #bbf7d0; }
+.tl-badge.now { color: var(--amber); background: var(--amber-soft); border: 1px solid var(--amber-line); }
+.tl-badge.plan { color: var(--ink-3); background: var(--paper-2); border: 1px solid var(--line); }
+.tl-title { font-size: 16.5px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; color: var(--ink); }
+.tl-body { font-size: 14px; color: var(--ink-2); line-height: 1.75; }
+.tl-body code { font-family: var(--mono); font-size: 12.5px; background: var(--paper-2); padding: 1px 6px; border-radius: var(--r-xs); color: var(--accent-2); border: 1px solid var(--line); }
+.tl-criteria { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.tl-criteria .c { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); padding: 3px 8px; border: 1px solid var(--line-2); border-radius: var(--r-xs); background: var(--paper); }
+.tl-criteria .c.ok { color: var(--green); border-color: #bbf7d0; background: var(--green-soft); }
+
+/* ============ COMPARISON TABLE ============ */
+.cmp-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line-2); border-radius: var(--r-md); overflow: hidden; background: var(--paper); box-shadow: var(--shadow-1); }
+.cmp-table th, .cmp-table td { padding: 15px 18px; text-align: left; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+.cmp-table thead th { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--ink-2); text-transform: uppercase; background: var(--paper-2); border-bottom: 1px solid var(--line-2); }
+.cmp-table thead th.h-blue { color: var(--accent); }
+.cmp-table thead th.h-teal { color: var(--teal); }
+.cmp-table tbody tr:hover { background: var(--paper-2); }
+.cmp-table .bad { color: var(--rose); }
+.cmp-table .good { color: var(--green); }
+.cmp-table .neutral { color: var(--ink-2); }
+.cmp-table tbody tr:last-child td { border-bottom: none; }
+.cmp-table .dim-col { color: var(--ink-3); }
+.cmp-table td.k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.03em; }
+
+/* ============ METRIC ============ */
+.metric-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.metric-cell { padding: 22px; background: var(--paper); position: relative; transition: background .2s; }
+.metric-cell:hover { background: var(--paper-2); }
+.metric-cell .num { font-family: var(--mono); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; color: var(--accent); }
+.metric-cell:nth-child(3n) .num { color: var(--teal); }
+.metric-cell:nth-child(3n+1) .num { color: var(--amber); }
+.metric-cell .unit { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-left: 2px; }
+.metric-cell .lbl { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 9px; letter-spacing: 0.05em; }
+
+/* ============ COMPUTE LINES (多线算力) ============ */
+.compute-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.compute-card { padding: 0; border: 1px solid var(--line-2); border-radius: var(--r-md); background: var(--paper); overflow: hidden; transition: all .3s var(--ease); box-shadow: var(--shadow-1); }
+.compute-card:hover { box-shadow: var(--shadow-3); transform: translateY(-3px); }
+.compute-head { padding: 18px 22px; border-bottom: 1px solid var(--line); position: relative; }
+.compute-head .role { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; font-weight: 600; }
+.compute-head h4 { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; }
+.compute-head .chip { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-top: 5px; }
+.compute-card.c-jetson .compute-head { background: var(--teal-soft); border-bottom-color: var(--teal-line); }
+.compute-card.c-jetson .role { color: var(--teal); }
+.compute-card.c-rtx .compute-head { background: var(--accent-soft); border-bottom-color: var(--accent-line); }
+.compute-card.c-rtx .role { color: var(--accent); }
+.compute-card.c-k3 .compute-head { background: var(--amber-soft); border-bottom-color: var(--amber-line); }
+.compute-card.c-k3 .role { color: var(--amber); }
+.compute-body { padding: 18px 22px; }
+.compute-body .desc { font-size: 13.5px; color: var(--ink-2); line-height: 1.7; margin-bottom: 14px; }
+.compute-body ul { list-style: none; padding: 0; }
+.compute-body li { font-size: 13px; color: var(--ink-2); padding: 5px 0 5px 18px; position: relative; line-height: 1.6; }
+.compute-body li::before { content: '→'; position: absolute; left: 0; font-family: var(--mono); color: var(--ink-3); }
+.compute-body li code { font-family: var(--mono); font-size: 11.5px; background: var(--paper-2); padding: 1px 5px; border-radius: var(--r-xs); color: var(--accent-2); }
+
+/* ============ ARCH DIAGRAM ============ */
+.arch-wrap { background: var(--paper); border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: 32px; box-shadow: var(--shadow-1); }
+.arch-flow { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.arch-col { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--paper); }
+.arch-col-head { padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.arch-col-head .tag-sm { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; font-weight: 600; padding: 2px 8px; border-radius: var(--r-xs); }
+.arch-col.a .arch-col-head { background: var(--accent-soft); }
+.arch-col.a .tag-sm { color: var(--accent); background: var(--paper); border: 1px solid var(--accent-line); }
+.arch-col.b .arch-col-head { background: var(--teal-soft); }
+.arch-col.b .tag-sm { color: var(--teal); background: var(--paper); border: 1px solid var(--teal-line); }
+.arch-col-head h4 { font-size: 16px; font-weight: 600; margin-top: 6px; letter-spacing: -0.01em; }
+.arch-col-body { padding: 16px 18px; }
+.arch-step { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; align-items: flex-start; }
+.arch-step:last-child { border-bottom: none; }
+.arch-step .lbl { font-family: var(--mono); font-size: 10px; color: var(--ink-3); min-width: 54px; padding-top: 2px; letter-spacing: 0.04em; }
+.arch-step .val { color: var(--ink-2); flex: 1; line-height: 1.6; }
+.arch-step .val code { font-family: var(--mono); font-size: 11.5px; background: var(--paper-2); padding: 1px 5px; border-radius: var(--r-xs); color: var(--accent-2); }
+
+/* ============ CODE BLOCK ============ */
+.code-block { background: #1c1917; border: 1px solid #292524; border-radius: var(--r-md); overflow: hidden; font-family: var(--mono); font-size: 12.5px; box-shadow: var(--shadow-2); }
+.code-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #292524; border-bottom: 1px solid #44403c; }
+.code-head .dots { display: flex; gap: 5px; }
+.code-head .dots span { width: 9px; height: 9px; border-radius: 50%; }
+.code-head .dots span:nth-child(1){ background:#f87171; }
+.code-head .dots span:nth-child(2){ background:#fbbf24; }
+.code-head .dots span:nth-child(3){ background:#34d399; }
+.code-head .file { font-size: 11px; color: #a8a29e; }
+.code-body { padding: 18px 20px; line-height: 1.85; overflow-x: auto; color: #e7e5e4; }
+.c-cmd { color: #93c5fd; }
+.c-flag { color: #fcd34d; }
+.c-str { color: #6ee7b7; }
+.c-com { color: #78716c; font-style: italic; }
+.c-out { color: #a8a29e; }
+.c-kw { color: #c4b5fd; }
+
+/* ============ RESOURCE CARD ============ */
+.repo-card { padding: 22px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper); transition: all .3s var(--ease); position: relative; overflow: hidden; box-shadow: var(--shadow-1); }
+.repo-card:hover { border-color: var(--line-2); transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.repo-card .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; gap: 10px; }
+.repo-name { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+.repo-name .org { color: var(--ink-3); }
+.repo-lang { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: var(--r-xs); font-weight: 600; }
+.repo-lang.hf { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-line); }
+.repo-lang.py { color: var(--teal); background: var(--teal-soft); border: 1px solid var(--teal-line); }
+.repo-lang.md { color: var(--amber); background: var(--amber-soft); border: 1px solid var(--amber-line); }
+.repo-desc { color: var(--ink-2); font-size: 13px; line-height: 1.7; margin-bottom: 14px; }
+.repo-meta { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--ink-3); padding-top: 13px; border-top: 1px solid var(--line); }
+.repo-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; color: var(--accent); font-family: var(--mono); font-size: 12px; font-weight: 500; }
+.repo-link:hover { gap: 9px; }
+
+/* ============ FOOTER ============ */
+.footer { background: var(--paper); border-top: 1px solid var(--line); padding: 56px 32px 28px; position: relative; z-index: 1; }
+.footer-inner { max-width: 1200px; margin: 0 auto; }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 44px; margin-bottom: 40px; }
+.footer-brand { font-family: var(--serif); font-size: 17px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; letter-spacing: -0.01em; color: var(--ink); }
+.footer-brand .lm { width: 26px; height: 26px; border-radius: var(--r-xs); background: var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 13px; color: var(--paper); font-weight: 700; }
+.footer-brand small { font-family: var(--mono); font-size: 9.5px; font-weight: 500; color: var(--ink-3); letter-spacing: 0.1em; }
+.footer-tagline { font-size: 13px; color: var(--ink-2); line-height: 1.75; max-width: 320px; }
+.footer-col h4 { font-family: var(--mono); color: var(--ink); font-size: 10.5px; margin-bottom: 14px; letter-spacing: 0.12em; text-transform: uppercase; }
+.footer-col a { display: block; color: var(--ink-2); font-size: 13px; padding: 5px 0; transition: all .2s var(--ease); cursor: pointer; }
+.footer-col a:hover { color: var(--accent); padding-left: 4px; }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 22px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; flex-wrap: wrap; gap: 12px; }
+
+/* ============ REVEAL ============ */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ============ TOAST ============ */
+.toast { position: fixed; top: 76px; right: 24px; background: var(--paper); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 13px 17px; box-shadow: var(--shadow-3); z-index: 3000; display: flex; align-items: center; gap: 11px; border-left: 3px solid var(--accent); transform: translateX(420px); transition: transform .4s var(--ease); max-width: 340px; }
+.toast.show { transform: translateX(0); }
+.toast.success { border-left-color: var(--green); }
+.toast-icon { width: 24px; height: 24px; border-radius: var(--r-xs); background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; flex-shrink: 0; }
+.toast.success .toast-icon { background: var(--green); }
+.toast-msg { font-size: 13px; color: var(--ink); }
+
+/* ============ ARCH NOTE ============ */
+.note { padding: 14px 18px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.7; display: flex; gap: 10px; align-items: flex-start; }
+.note.warn { background: var(--amber-soft); border: 1px solid var(--amber-line); color: #92400e; }
+.note.info { background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-2); }
+.note .ico { flex-shrink: 0; font-weight: 700; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) { .hero-inner { grid-template-columns: 1fr; gap: 40px; } .arch-flow { grid-template-columns: 1fr; } .compute-grid { grid-template-columns: 1fr; } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .nav-menu { display: none; } .navbar { padding: 0 16px; } .section { padding: 64px 16px; } .hero { padding: 48px 16px 72px; } .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; } .footer-bottom { flex-direction: column; align-items: flex-start; } .hero h1 { font-size: 34px; } .cmp-table { font-size: 12px; } .cmp-table th, .cmp-table td { padding: 11px; } }
+</style>
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div class="logo" onclick="switchPage('page-intro')"><div class="logo-mark">灵</div><div>灵臂 LingArm<small>LOW-COST VLA · OPEN SOURCE</small></div></div>
+  <ul class="nav-menu">
+    <li class="nav-item active" data-page="page-intro">主项目简介</li>
+    <li class="nav-item" data-page="page-models">模型与数据</li>
+    <li class="nav-item" data-page="page-repo">资源</li>
+    <li class="nav-item" data-page="page-tutorial">教程</li>
+    <li class="nav-item" data-page="page-contact">联系</li>
+  </ul>
+  <div class="nav-actions">
+    <div class="status-pill" id="navStatus"><span class="pulse"></span><span>V3.0 · WHITEBOARD</span></div>
+    <a class="btn btn-hf btn-ghost" href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">🤗 HuggingFace</a>
+    <button class="btn btn-primary" id="starBtn">⭐ Star</button>
+  </div>
+</nav>
+
+<!-- ===================== 主项目简介 ===================== -->
+<div class="page active" id="page-intro">
+
+  <!-- HERO：LingArm 定位 -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-eyebrow"><span class="dot"></span><span>OPEN EMBODIED AI · LOW-COST VLA · MULTI-PLATFORM</span></div>
+        <h1>让视觉-语言-动作模型<br><span class="accent">真正走出</span><span class="thin">大算力实验室</span></h1>
+        <p class="lead">LingArm 是一套面向桌面级机械臂的<strong>低成本具身智能研究系统</strong>。以 ¥2000 级机械臂与消费级算力，打通"数据采集 → VLA 训练 → 边缘部署"全链路。我们不押注单一算力——<strong>Jetson 做边缘部署、RTX 做前沿训练、K3 做国产替代</strong>，既追前沿方法，也守信创底线。</p>
+        <div class="hero-specs">
+          <span class="spec-chip">Qwen3-VL-2B-Instruct</span>
+          <span class="spec-chip">BridgeData v2 · 2,617 eps</span>
+          <span class="spec-chip">Action Chunking K=16</span>
+          <span class="spec-chip">¥2000 级硬件</span>
+          <span class="spec-chip">多线算力并行</span>
+          <span class="spec-chip">Apache 2.0</span>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">查看模型权重 →</a>
+          <button class="btn btn-ghost btn-lg" onclick="document.getElementById('journey').scrollIntoView({behavior:'smooth'})">项目历程</button>
+          <a class="link-arrow" style="margin-left:6px" href="#mission">初心与使命 ↓</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="panel-head"><span class="title">// FROZENVLA-2B · TRAINING TELEMETRY</span><div class="dots"><span></span><span></span><span></span></div></div>
+        <div class="panel-body">
+          <div class="chip-id">FrozenVLA-2B</div>
+          <div class="chip-sub">Qwen3-VL-2B-Instruct (FROZEN) + 1.3M TRAINABLE HEAD</div>
+          <div class="cluster-row">
+            <div class="cluster c1"><div class="k">BASE MODEL</div><div class="v">2.13B</div><div class="k" style="margin-top:4px">❄️ Frozen</div></div>
+            <div class="cluster c2"><div class="k">TRAINABLE</div><div class="v">1.3M</div><div class="k" style="margin-top:4px">🔥 MLP + Head</div></div>
+            <div class="cluster c3"><div class="k">EPOCHS</div><div class="v">4 / 5</div><div class="k" style="margin-top:4px">✅ Done</div></div>
+          </div>
+          <div class="ticker-row"><span class="lbl">DATASET · BridgeData v2</span><span class="val">2,617 episodes</span></div>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="ticker-row"><span class="lbl">ACTION FORMAT · EEF delta</span><span class="val">7D · axis-angle</span></div>
+          <div class="bar"><i style="width:88%; background:var(--teal)"></i></div>
+          <div class="ticker-row"><span class="lbl">VRAM · RTX 4060 8GB</span><span class="val">~4 GB · verified</span></div>
+          <div class="bar"><i style="width:50%; background:var(--amber)"></i></div>
+          <div class="bus-line">↕ huggingface.co/LingArm/LingArm_frozen_preview · Apache 2.0</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 初心与使命 -->
+  <section class="section" id="mission">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-tag">MISSION · 初心与使命</div>
+        <h2 class="section-title">为什么做 LingArm</h2>
+        <p class="section-sub">VLA 领域 95% 的工作跑在 NVIDIA GPU 上，几乎没人考虑边缘部署；而桌面级、低成本、可全链路复现的研究平台，至今仍是空白。LingArm 想填这块空白。</p>
+      </div>
+      <div class="mission-grid reveal">
+        <div class="mission-card">
+          <div class="num"><b>01</b> / 初心</div>
+          <h3>让每个人都能复现 VLA</h3>
+          <p>不被大算力、大资金门槛挡在门外。¥2000 级机械臂 + 消费级 GPU，就能跑通"看图听指令 → 动手操作"的完整闭环。开源模型权重、训练代码、方案对比——每一层都可审计、可复现。</p>
+        </div>
+        <div class="mission-card">
+          <div class="num"><b>02</b> / 使命</div>
+          <h3>低成本闭环 · 全链路打通</h3>
+          <p>从遥操作数据采集（LeRobot）、到 VLA 模型训练（PAI / 本地 RTX）、再到边缘部署（Jetson / K3）。我们不只训练模型，更把"训练—评估—部署"的工程链路做成可复用的脚手架。</p>
+        </div>
+        <div class="mission-card">
+          <div class="num"><b>03</b> / 立场</div>
+          <h3>不押注单一算力</h3>
+          <p>Jetson 做边缘实时控制、RTX 做前沿方法训练、K3 RISC-V 做信创国产替代——三线并行，各司其职。既追 OpenVLA / Diffusion Policy 的方法论前沿，也守住自主可控的底线。</p>
+        </div>
+        <div class="mission-card">
+          <div class="num"><b>04</b> / 差异化</div>
+          <h3>极低成本边缘 VLA 部署</h3>
+          <p>学术界极少有人在 RISC-V 边缘芯片上做 VLA 实操。这是 LingArm 独特的叙事角度——不是方法最 SOTA，而是第一个证明 VLA 可以在极低成本边缘硬件上做实操，值得 ICRA/CoRL 投稿。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 项目历程：开源技术风训练报告 -->
+  <section class="section" id="journey" style="background:linear-gradient(180deg,transparent,var(--paper-2),transparent)">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-tag">JOURNEY · 项目历程</div>
+        <h2 class="section-title">从想法到第一个 checkpoint</h2>
+        <p class="section-sub">不粉饰、不夸大——以下是 LingArm 真实走过的路。每一步都附技术决策与可验证产出，像一份开源的训练日志。</p>
+      </div>
+      <div class="timeline reveal">
+        <div class="tl-item done">
+          <div class="tl-meta"><span class="tl-date">2026.06 · WEEK 00</span><span class="tl-badge done">DONE</span></div>
+          <div class="tl-title">项目立项 · 硬件选型与数据管线搭建</div>
+          <div class="tl-body">选定 SO-ARM101 Pro（¥1500-2000）作为目标机械臂，完成 URDF + 13 个 STL 网格。BridgeData V2 数据管线打通：2,617 episodes 转为 LeRobot 格式（TFRecord → Parquet），多数据集 catalog 规划完成。</div>
+          <div class="tl-criteria"><span class="c ok">so101_new_calib.urdf</span><span class="c ok">2,617 eps</span><span class="c ok">LeRobot 格式</span></div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-meta"><span class="tl-date">2026.07.06 · DECISION</span><span class="tl-badge done">DECIDED</span></div>
+          <div class="tl-title">训练目标调整 · 训练与部署解耦</div>
+          <div class="tl-body">从"绑定 SO-ARM101 的端到端训练"调整为"先训通用 VLA 并发布 HuggingFace"。训练输出 EEF delta 7D（与 BridgeData 原始格式一致），<code>eef_delta_to_joints.py</code> 保留在 deploy/ 做部署端 IK 转换。通用模型可被任意机械臂复用。</div>
+          <div class="tl-criteria"><span class="c ok">训练/部署解耦</span><span class="c ok">EEF delta 接口</span><span class="c ok">HF 发布计划</span></div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-meta"><span class="tl-date">2026.07.07 · AUDIT</span><span class="tl-badge done">REPORT</span></div>
+          <div class="tl-title">追赶报告编制 · 审计发现方法论落后 2 年</div>
+          <div class="tl-body">完整审计发现致命缺陷：MSE 连续回归无法处理多模态动作分布、无 Action Chunking（文档写 K=16 代码没实现）、无 rollout 评估（MSE loss 是幻觉指标）、VLM 完全冻结未适配机器人领域。确认差异化优势：低成本硬件×边缘部署是学术界空白。</div>
+          <div class="tl-criteria"><span class="c ok">追赶2026规划报告</span><span class="c ok">4 项致命缺失</span><span class="c ok">4 项差异化优势</span></div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-meta"><span class="tl-date">2026.07.07 · BUILD</span><span class="tl-badge done">SHIPPED</span></div>
+          <div class="tl-title">v1.1 双路线训练套件搭建完成</div>
+          <div class="tl-body">基于追赶报告 Phase 1，搭建 <code>train_1.1/</code> 双路线：Route A 离散化+LoRA（7D→256 bins/维=1792 tokens，Q/K/V/O 加 LoRA rank=64，对标 OpenVLA）；Route B 扩散策略（DDPM cosine T=100 + DDIM 20 步 + UNet1D denoiser，对标 Diffusion Policy）。Action Chunking K=16 全线统一。</div>
+          <div class="tl-criteria"><span class="c ok">Route A: discrete+LoRA</span><span class="c ok">Route B: diffusion</span><span class="c ok">K=16 chunking</span></div>
+        </div>
+        <div class="tl-item now">
+          <div class="tl-meta"><span class="tl-date">2026.07.08 · RELEASE</span><span class="tl-badge now">CURRENT</span></div>
+          <div class="tl-title">FrozenVLA-2B 发布 HuggingFace</div>
+          <div class="tl-body">baseline 模型（<code>train/</code> v1.0：Frozen Qwen3-VL-2B + MLP + MSE 回归）权重发布至 <a href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">huggingface.co/LingArm/LingArm_frozen_preview</a>。2.13B 参数冻结 + 1.3M 可训练头，4 epoch checkpoint，VRAM ~4GB，RTX 4060 8GB 实测可用。作为后续方法论改进的基线参照。</div>
+          <div class="tl-criteria"><span class="c ok">epoch_1~4.pt</span><span class="c ok">1.3M trainable</span><span class="c ok">~4GB VRAM</span><span class="c">Apache 2.0</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-meta"><span class="tl-date">2026.07.09 · NOW</span><span class="tl-badge plan">IN PROGRESS</span></div>
+          <div class="tl-title">门户重构 · 从单一叙事转向多线定位</div>
+          <div class="tl-body">本页面即为此次重构产物。从 K3 单一芯片叙事，转向 LingArm 整体定位（低成本 VLA 全链路）。K3 降为多线算力之一，与 Jetson/RTX 平等并列。移除全部虚构内容，只保留真实可验证的模型、代码与方案。</div>
+          <div class="tl-criteria"><span class="c">白板视觉重构</span><span class="c">真实 HF 数据</span><span class="c">多线算力并列</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-meta"><span class="tl-date">2026.07 ~ 09 · PHASE 1</span><span class="tl-badge plan">PLANNED</span></div>
+          <div class="tl-title">方法论重建 · 双路线并行验证 + rollout 评估</div>
+          <div class="tl-body">Phase 0 止血：PyBullet sim rollout 评估体系 + 训练/验证集 80/20 episode 划分。Phase 1 第 8 周根据实物评估结果二选一：Route A 还是 Route B。绝对原则——必须用 sim/实物 rollout 成功率评估，禁止只用 MSE loss。</div>
+          <div class="tl-criteria"><span class="c">rollout_sim.py</span><span class="c">50 次/任务</span><span class="c">第8周二选一</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 方案规划：一体VLA vs 多模块 -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-tag">ARCHITECTURE · 方案规划</div>
+        <h2 class="section-title">一体化 VLA <span class="dim">vs</span> 多模块方案</h2>
+        <p class="section-sub">当前 VLA 领域没有唯一正确答案。我们对比两条主流路线，并在 baseline 上并行验证——不押注单一方法，用实物 rollout 结果说话。</p>
+      </div>
+      <div class="arch-flow reveal" style="margin-bottom:28px">
+        <div class="arch-col a">
+          <div class="arch-col-head"><span class="tag-sm">ROUTE · 一体化 VLA</span><h4>端到端单模型</h4></div>
+          <div class="arch-col-body">
+            <div class="arch-step"><span class="lbl">代表</span><span class="val">OpenVLA · Pi0 · RT-2</span></div>
+            <div class="arch-step"><span class="lbl">思路</span><span class="val">VLM backbone 直接输出 action token，端到端联合训练</span></div>
+            <div class="arch-step"><span class="lbl">LingArm</span><span class="val"><code>Route A</code> 离散化 256 bins/维 + LoRA 微调 Q/K/V/O（rank=64）</span></div>
+            <div class="arch-step"><span class="lbl">优点</span><span class="val">实现简单、社区资源丰富（OpenVLA 全家桶）、VLM 适配机器人领域</span></div>
+            <div class="arch-step"><span class="lbl">风险</span><span class="val">K3 上 1792 个 softmax 开销可能大，需分组优化</span></div>
+          </div>
+        </div>
+        <div class="arch-col b">
+          <div class="arch-col-head"><span class="tag-sm">ROUTE · 多模块方案</span><h4>冻结编码器 + 独立动作头</h4></div>
+          <div class="arch-col-body">
+            <div class="arch-step"><span class="lbl">代表</span><span class="val">Diffusion Policy · Octo</span></div>
+            <div class="arch-step"><span class="lbl">思路</span><span class="val">VLM 冻结做条件编码器，独立 action head 生成动作</span></div>
+            <div class="arch-step"><span class="lbl">LingArm</span><span class="val"><code>Route B</code> 冻结 Qwen3-VL + UNet1D denoiser + DDPM(cosine, T=100)</span></div>
+            <div class="arch-step"><span class="lbl">优点</span><span class="val">天然处理多模态动作分布、动作平滑、业界主流</span></div>
+            <div class="arch-step"><span class="lbl">风险</span><span class="val">多步去噪 → K3 推理延迟，需 DDIM 加速到 20 步</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal" style="max-width:1000px;margin:0 auto">
+        <table class="cmp-table">
+          <thead><tr><th style="width:22%">评估维度</th><th class="h-blue" style="width:39%">Route A · 离散化 + LoRA</th><th class="h-teal" style="width:39%">Route B · 扩散策略</th></tr></thead>
+          <tbody>
+            <tr><td class="k">实现复杂度</td><td class="good">低（2 周可实现）</td><td class="neutral">中（4 周可实现）</td></tr>
+            <tr><td class="k">对标</td><td class="neutral">OpenVLA</td><td class="neutral">Diffusion Policy / Octo</td></tr>
+            <tr><td class="k">动作多样性</td><td class="good">离散化天然支持</td><td class="good">扩散天然支持</td></tr>
+            <tr><td class="k">动作平滑度</td><td class="neutral">可能需后处理平滑</td><td class="good">天然平滑</td></tr>
+            <tr><td class="k">K3 部署可行性</td><td class="bad">1792 softmax 可能慢</td><td class="bad">DDIM 多步可能超时</td></tr>
+            <tr><td class="k">社区资源</td><td class="good">丰富（OpenVLA 全家桶）</td><td class="good">丰富（Diffusion Policy）</td></tr>
+            <tr><td class="k">Sim rollout 成功率</td><td class="dim-col">— 待实测 —</td><td class="dim-col">— 待实测 —</td></tr>
+            <tr><td class="k">决策时机</td><td colspan="2" class="dim-col" style="text-align:center">Phase 1 第 8 周，根据实物评估结果二选一</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note warn reveal" style="max-width:1000px;margin:24px auto 0">
+        <span class="ico">⚠</span>
+        <span><strong>绝对原则：</strong>必须用实物/sim rollout 成功率评估，禁止只用 MSE loss 判断 VLA 好坏。任何不上实物的 VLA 项目都是在自我欺骗——从 Phase 0 开始就在 sim 里跑 rollout，Phase 2 必须上实物。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 多线算力并行 -->
+  <section class="section" style="background:linear-gradient(180deg,transparent,var(--paper-2),transparent)">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-tag">COMPUTE · 多线算力并行</div>
+        <h2 class="section-title">不押注单一算力</h2>
+        <p class="section-sub">三线并行，各司其职：Jetson 做边缘实时控制、RTX 做前沿方法训练、K3 RISC-V 做信创国产替代。既追前沿训练，也守自主可控底线。</p>
+      </div>
+      <div class="compute-grid reveal">
+        <div class="compute-card c-jetson">
+          <div class="compute-head">
+            <div class="role">EDGE · 边缘部署</div>
+            <h4>Jetson Orin Nano</h4>
+            <div class="chip">NVIDIA · 实时控制 · 实物推理</div>
+          </div>
+          <div class="compute-body">
+            <div class="desc">机械臂侧的边缘推理与实时控制。负责 VLA 模型实物部署、关节控制环、力反馈。</div>
+            <ul>
+              <li>INT4/INT8 量化推理，目标延迟 <code>&lt;2s</code></li>
+              <li>Action Chunking 异步执行：推理一条 chunk 同时执行下一条</li>
+              <li>500Hz 关节控制 + 1kHz 力控闭环</li>
+              <li>安全边界：关节限位、速度限制、碰撞检测、急停</li>
+            </ul>
+          </div>
+        </div>
+        <div class="compute-card c-rtx">
+          <div class="compute-head">
+            <div class="role">TRAIN · 前沿训练</div>
+            <h4>RTX 4060 / A10</h4>
+            <div class="chip">NVIDIA · 消费级到专业级 · 方法验证</div>
+          </div>
+          <div class="compute-body">
+            <div class="desc">方法论训练主力。Route A 离散化+LoRA 与 Route B 扩散策略均在此验证。</div>
+            <ul>
+              <li>RTX 4060 8GB：本地实验，VRAM <code>~4GB</code> 实测可用</li>
+              <li>阿里云 PAI A10 24GB：正式训练，bf16 + gradient checkpointing</li>
+              <li>LoRA 微调 Qwen3-VL 的 Q/K/V/O 层（rank=64）</li>
+              <li>PyBullet sim rollout 批量评估</li>
+            </ul>
+          </div>
+        </div>
+        <div class="compute-card c-k3">
+          <div class="compute-head">
+            <div class="role">XINCHUANG · 国产替代</div>
+            <h4>SpacemiT K3 RISC-V</h4>
+            <div class="chip">进迭时空 · RVA23 · 60 TOPS · 信创</div>
+          </div>
+          <div class="compute-body">
+            <div class="desc">信创场景的国产替代路线。面向对自主可控要求极高的领域，提供可审计技术底座。</div>
+            <ul>
+              <li>全球首颗 RVA23 量产芯片，<code>60 TOPS</code> FP8 原生</li>
+              <li>单芯片异构：8×X100 + 8×A100 + 2×RT-Core</li>
+              <li>INT4 量化 + ONNX Runtime / llama.cpp for RISC-V</li>
+              <li>面向信创、国防等敏感场景，全栈可审计</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="note info reveal" style="max-width:1000px;margin:24px auto 0">
+        <span class="ico">✦</span>
+        <span><strong>定位说明：</strong>K3 不再是 LingArm 的唯一算力叙事，而是多线之一。它解决的是"自主可控"问题，Jetson 解决"实时部署"，RTX 解决"方法训练"——三者互补，不互斥。</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 长期路线图 -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-tag">ROADMAP · 长期路线</div>
+        <h2 class="section-title">12 个月技术演进</h2>
+        <p class="section-sub">从止血到前沿对齐，每个阶段都有可量化的验收标准与可验证产出。</p>
+      </div>
+      <div class="timeline reveal" style="max-width:760px">
+        <div class="tl-item done">
+          <div class="tl-meta"><span class="tl-date">PHASE 0 · WEEK 1-2</span><span class="tl-badge done">BASELINE</span></div>
+          <div class="tl-title">止血 · 建立可重复评估体系</div>
+          <div class="tl-body">训练/验证集 80/20 episode 划分、PyBullet sim rollout 评估、当前模型基线数字到手。</div>
+          <div class="tl-criteria"><span class="c">M1 · 基线数字</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-meta"><span class="tl-date">PHASE 1 · WEEK 3-8</span><span class="tl-badge plan">PLANNED</span></div>
+          <div class="tl-title">方法论重建 · 双路线并行验证</div>
+          <div class="tl-body">Route A 离散化+LoRA 与 Route B 扩散策略并行，第 8 周根据 sim rollout 结果二选一。</div>
+          <div class="tl-criteria"><span class="c">M2 · 方法论选定</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-meta"><span class="tl-date">PHASE 2 · WEEK 9-20</span><span class="tl-badge plan">PLANNED</span></div>
+          <div class="tl-title">能力追赶 · 多数据集 + 自建数据 + 实物</div>
+          <div class="tl-body">集成 RH20T/DROID/OXE（目标 30K+ 轨迹）、SO-ARM101 自建 500 eps、首次实物验证。</div>
+          <div class="tl-criteria"><span class="c">M3 · 实物 ≥50%</span><span class="c">sim ≥70%</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-meta"><span class="tl-date">PHASE 3 · WEEK 21-36</span><span class="tl-badge plan">PLANNED</span></div>
+          <div class="tl-title">前沿对齐 · 规模化与泛化</div>
+          <div class="tl-body">流匹配/离散扩散加速、多 embodiment 联合训练、≥100K 轨迹、完整 Benchmark + 开源发布。</div>
+          <div class="tl-criteria"><span class="c">M4 · 实物 ≥70%</span><span class="c">10任务 ≥80%</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-meta"><span class="tl-date">PHASE 4 · WEEK 37-48</span><span class="tl-badge plan">PLANNED</span></div>
+          <div class="tl-title">部署与产品化 · 让模型真正可用</div>
+          <div class="tl-body">K3 RISC-V INT4 量化推理优化、流式推理 pipeline、安全系统、Web UI。</div>
+          <div class="tl-criteria"><span class="c">M5 · K3 端到端 &lt;2s</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================== 模型与数据 ===================== -->
+<div class="page" id="page-models">
+  <section class="section"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">MODEL · 真实模型</div>
+      <h2 class="section-title">FrozenVLA-2B</h2>
+      <p class="section-sub">50M 可训练头叠加于冻结的 Qwen3-VL-2B-Instruct 之上，在 BridgeData v2（2,617 episodes）上训练。已发布 HuggingFace，Apache 2.0 协议。</p>
+    </div>
+    <div class="metric-strip reveal" style="margin-bottom:32px">
+      <div class="metric-cell"><div class="num">2.13<span class="unit">B</span></div><div class="lbl">BASE · FROZEN</div></div>
+      <div class="metric-cell"><div class="num">1.3<span class="unit">M</span></div><div class="lbl">TRAINABLE</div></div>
+      <div class="metric-cell"><div class="num">2,617<span class="unit"></span></div><div class="lbl">EPISODES</div></div>
+      <div class="metric-cell"><div class="num">4<span class="unit">/5</span></div><div class="lbl">EPOCHS</div></div>
+      <div class="metric-cell"><div class="num">~4<span class="unit">GB</span></div><div class="lbl">VRAM</div></div>
+      <div class="metric-cell"><div class="num">7<span class="unit">D</span></div><div class="lbl">EEF DELTA</div></div>
+    </div>
+
+    <div class="grid grid-2 reveal" style="align-items:start;gap:28px">
+      <div>
+        <div class="section-tag" style="margin-bottom:14px">ARCHITECTURE</div>
+        <h3 style="font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:18px;color:var(--ink)">模型架构</h3>
+        <div class="panel" style="padding:22px">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:6px">// Qwen3-VL-2B-Instruct (FROZEN)</div>
+          <div style="font-size:13.5px;color:var(--ink-2);line-height:1.8;margin-bottom:14px">ViT 视觉编码器 + LLM（28 层，hidden=2048）→ last_token_hidden（2048-dim）</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:6px">// MLP Projector (TRAINABLE · 1.3M)</div>
+          <div style="font-size:13.5px;color:var(--ink-2);line-height:1.8;margin-bottom:14px">2048 → 512 → 512，GELU + Dropout</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:6px">// Action Head (TRAINABLE · 513)</div>
+          <div style="font-size:13.5px;color:var(--ink-2);line-height:1.8">512 → 7，输出 EEF delta：<code style="font-family:var(--mono);font-size:12px;background:var(--paper-2);padding:1px 6px;border-radius:var(--r-xs);color:var(--accent-2)">[dx, dy, dz, ax, ay, az, gripper]</code></div>
+        </div>
+        <div class="note warn" style="margin-top:16px">
+          <span class="ico">⚠</span>
+          <span><strong>局限：</strong>BridgeData EEF delta only，不能直接用于关节空间机器人，需部署端 IK 转换。单帧输入，无时序上下文。英文指令。</span>
+        </div>
+      </div>
+      <div>
+        <div class="section-tag" style="margin-bottom:14px">TRAINING CONFIG</div>
+        <h3 style="font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:18px;color:var(--ink)">训练配置</h3>
+        <div class="panel" style="padding:8px 22px">
+          <table class="cmp-table" style="border:none;box-shadow:none">
+            <tbody>
+              <tr><td class="k">DATASET</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">BridgeData v2 (LeRobot)</td></tr>
+              <tr><td class="k">HARDWARE</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">Alibaba PAI · A10 24GB</td></tr>
+              <tr><td class="k">BATCH</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">64 (32 × accum=2)</td></tr>
+              <tr><td class="k">OPTIMIZER</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">AdamW (lr=1e-4, wd=1e-2)</td></tr>
+              <tr><td class="k">SCHEDULE</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">Cosine · 500 warmup</td></tr>
+              <tr><td class="k">PRECISION</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">bfloat16 · clip=1.0</td></tr>
+              <tr><td class="k">IMAGE</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">448×448 (Qwen3-VL)</td></tr>
+              <tr><td class="k">FRAMEWORK</td><td class="neutral" style="font-family:var(--mono);font-size:12.5px">PyTorch 2.6 · Transformers 4.51+</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="section" style="background:linear-gradient(180deg,transparent,var(--paper-2),transparent)"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">QUICK START · 快速推理</div>
+      <h2 class="section-title">30 秒加载并推理</h2>
+      <p class="section-sub">从 HuggingFace 拉取权重，加载基座模型，一键推理。完整脚本见 <code style="font-family:var(--mono);font-size:12.5px;background:var(--paper-2);padding:1px 6px;border-radius:var(--r-xs);color:var(--accent-2);border:1px solid var(--line)">deploy.py</code>。</p>
+    </div>
+    <div class="reveal" style="max-width:860px;margin:0 auto">
+      <div class="code-block">
+        <div class="code-head"><div class="dots"><span></span><span></span><span></span></div><span class="file">deploy.sh — 拉取 + 推理一键脚本</span></div>
+        <div class="code-body">
+<span class="c-com"># 1. 克隆模型仓库（含权重 + 架构 + 部署脚本）</span><br>
+<span class="c-cmd">git</span> clone https://huggingface.co/LingArm/LingArm_frozen_preview<br>
+<span class="c-cmd">cd</span> LingArm_frozen_preview<br><br>
+<span class="c-com"># 2. 下载基座模型 Qwen3-VL-2B-Instruct</span><br>
+<span class="c-cmd">huggingface-cli</span> download Qwen/Qwen3-VL-2B-Instruct <span class="c-flag">--local-dir</span> ./Qwen3-VL-2B-Instruct<br><br>
+<span class="c-com"># 3. 一键推理（自动加载 epoch_4.pt）</span><br>
+<span class="c-cmd">python</span> deploy.py <span class="c-flag">--checkpoint</span> epoch_4.pt <span class="c-flag">--test-image</span> robot_view.jpg<br>
+<span class="c-out">[INFO] Qwen3-VL loaded · sdpa · bf16</span><br>
+<span class="c-out">[INFO] trainable head loaded · 1.3M params</span><br>
+<span class="c-out">[INFO] VRAM ~4.0 GB · inference OK</span><br>
+<span class="c-out">action: [0.012, -0.034, 0.087, 0.001, -0.002, 0.003, 1.0]</span>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+        <a class="btn btn-hf" href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">🤗 打开 HuggingFace 仓库 →</a>
+        <a class="btn btn-ghost" href="pages/model.html">查看完整模型卡 →</a>
+        <button class="btn btn-ghost" onclick="switchPage('page-repo')">查看本地训练代码</button>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="section"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">DATASET · 真实数据</div>
+      <h2 class="section-title">BridgeData v2</h2>
+      <p class="section-sub">真实使用的数据集——不是虚构的 Desktop-Op。BridgeData V2 已转为 LeRobot 格式，2,617 episodes 桌面操作轨迹。</p>
+    </div>
+    <div class="grid grid-3 reveal">
+      <div class="panel"><div class="panel-idx"><span class="n">// 01</span> SOURCE</div><div class="panel-title">数据来源</div><p class="panel-text">BridgeData V2，WidowX 机械臂采集的桌面操作数据。TFRecord → Parquet 转换，统一为 LeRobot Dataset v2.0 格式。</p><div class="tagline"><span class="tag blue">LeRobot v2.0</span><span class="tag blue">Parquet</span><span class="tag blue">WidowX</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">// 02</span> FORMAT</div><div class="panel-title">数据格式</div><p class="panel-text">每条 episode 含图像帧（mp4 视频）+ action（EEF delta 7D）+ 指令。按 episode 组织，chunk 分片存储。</p><div class="tagline"><span class="tag teal">2,617 eps</span><span class="tag teal">7D action</span><span class="tag teal">mp4+parquet</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">// 03</span> PLAN</div><div class="panel-title">扩展规划</div><p class="panel-text">Phase 2 将集成 RH20T / DROID / OXE 桌面子集，目标 30K+ 轨迹；并自建 SO-ARM101 数据 500 eps。</p><div class="tagline"><span class="tag amber">RH20T</span><span class="tag amber">DROID</span><span class="tag amber">SO-ARM101 自建</span></div></div>
+    </div>
+  </div></section>
+</div>
+
+<!-- ===================== 资源 ===================== -->
+<div class="page" id="page-repo">
+  <section class="section"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">RESOURCES · 真实资源</div>
+      <h2 class="section-title">开源资源清单</h2>
+      <p class="section-sub">所有内容真实可验证——模型权重、训练代码、方案文档。部分代码标注待开源，未虚构 star 数与贡献者。</p>
+    </div>
+    <div class="grid grid-auto reveal">
+      <div class="repo-card">
+        <div class="top"><div class="repo-name"><span class="org">LingArm/</span>LingArm_frozen_preview</div><span class="repo-lang hf">🤗 HF MODEL</span></div>
+        <p class="repo-desc">FrozenVLA-2B 模型权重：Qwen3-VL-2B 冻结 + 1.3M 可训练头。含 epoch_1~4.pt、model.py、config.yaml、deploy.py。Apache 2.0。</p>
+        <div class="repo-meta"><span>📦 6 files</span><span>~60 MB</span><span>🕐 2026.07.08</span></div>
+        <a href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener" class="repo-link">打开 HuggingFace →</a>
+      </div>
+      <div class="repo-card">
+        <div class="top"><div class="repo-name">train/ · v1.0 baseline</div><span class="repo-lang py">PYTHON</span></div>
+        <p class="repo-desc">baseline 训练代码：Frozen Qwen3-VL-2B + 2-layer MLP + MSE 回归。2022 范式，作为后续方法论改进的参照基线。</p>
+        <div class="repo-meta"><span>model.py · train.py · dataset.py</span><span>config.yaml</span></div>
+        <a href="pages/train.html" class="repo-link">查看 train/ 详情 →</a>
+      </div>
+      <div class="repo-card">
+        <div class="top"><div class="repo-name">train_1.1/ · 双路线套件</div><span class="repo-lang py">PYTHON</span></div>
+        <p class="repo-desc">Phase 1 双路线训练套件：Route A 离散化+LoRA（discrete_vla + action_tokenizer + lora_utils）、Route B 扩散策略（diffusion_vla + UNet1D denoiser + DDPM/DDIM）。</p>
+        <div class="repo-meta"><span>19 .py · 2 .yaml</span><span>K=16 chunking</span><span>eval/ rollout</span></div>
+        <a href="pages/train_1.1.html" class="repo-link">查看 train_1.1/ 详情 →</a>
+      </div>
+      <div class="repo-card">
+        <div class="top"><div class="repo-name">project/ · 方案文档</div><span class="repo-lang md">MARKDOWN</span></div>
+        <p class="repo-desc">追赶 2026 规划报告、技术指标与开发思路规划、SO-ARM101 开发任务分工。含方案评估与修正报告 PDF。</p>
+        <div class="repo-meta"><span>3 .md · 2 .pdf · 3 .docx</span><span>~1.1 MB</span></div>
+        <a href="pages/project.html" class="repo-link">查看方案文档详情 →</a>
+      </div>
+      <div class="repo-card">
+        <div class="top"><div class="repo-name">SO-ARM101 LeRobot/</div><span class="repo-lang py">HARDWARE</span></div>
+        <p class="repo-desc">机械臂硬件设计：URDF（so101_new_calib.urdf）、13 个 STL 网格、校准与控制代码。SO-ARM100 社区适配。</p>
+        <div class="repo-meta"><span>13 .stl · 11 .py</span><span>11 .yaml</span><span>urdf</span></div>
+        <a href="pages/project.html" class="repo-link">查看硬件方案文档 →</a>
+      </div>
+      <div class="repo-card">
+        <div class="top"><div class="repo-name">deploy/ · 部署脚本</div><span class="repo-lang py">PYTHON</span></div>
+        <p class="repo-desc">部署端脚本：EEF delta → IK → 关节角转换（eef_delta_to_joints.py + PyBullet IK）、soarm101 部署示例。</p>
+        <div class="repo-meta"><span>PyBullet IK</span><span>关节空间转换</span></div>
+        <a href="pages/train.html" class="repo-link">查看部署衔接说明 →</a>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="section" style="background:linear-gradient(180deg,transparent,var(--paper-2),transparent)"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">STATUS · 开源进度</div>
+      <h2 class="section-title">什么已开源，什么在路上</h2>
+      <p class="section-sub">诚实标注当前状态——不夸大、不虚构。</p>
+    </div>
+    <div class="metric-strip reveal">
+      <div class="metric-cell"><div class="num" style="color:var(--green)">1<span class="unit"></span></div><div class="lbl">HF 模型已发布</div></div>
+      <div class="metric-cell"><div class="num" style="color:var(--green)">2<span class="unit"></span></div><div class="lbl">训练代码套件</div></div>
+      <div class="metric-cell"><div class="num" style="color:var(--amber)">0<span class="unit"></span></div><div class="lbl">GitHub 仓库（待建）</div></div>
+      <div class="metric-cell"><div class="num" style="color:var(--amber)">0<span class="unit"></span></div><div class="lbl">rollout 评估（Phase 0）</div></div>
+    </div>
+    <div class="note info reveal" style="max-width:1000px;margin:24px auto 0">
+      <span class="ico">✦</span>
+      <span>训练代码与硬件设计目前位于本地工作区，GitHub 仓库与完整开源发布将在 Phase 1 方法论选定后进行。当前最成熟的可复用产物是 HuggingFace 上的 FrozenVLA-2B 权重。</span>
+    </div>
+  </div></section>
+</div>
+
+<!-- ===================== 教程 ===================== -->
+<div class="page" id="page-tutorial">
+  <section class="section"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">TUTORIAL · 快速上手</div>
+      <h2 class="section-title">从零跑通第一个 VLA</h2>
+      <p class="section-sub">系统化路径：环境配置 → 数据准备 → 训练 → 推理。配套真实代码与可复现的 Quickstart。</p>
+    </div>
+    <div class="grid grid-auto reveal">
+      <div class="panel"><div class="panel-idx"><span class="n">01</span> · ENV</div><div class="panel-title">训练环境配置</div><p class="panel-text">PAI DSW 或本地 RTX 环境：PyTorch 2.6+、Transformers 4.51+、CUDA 12.6。配置 HF 镜像与 NAS 数据挂载。</p><div class="tagline"><span class="tag blue">A10 24GB</span><span class="tag blue">bf16</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">02</span> · DATA</div><div class="panel-title">BridgeData 准备</div><p class="panel-text">拉取 BridgeData V2，转为 LeRobot 格式。按 episode 80/20 划分训练/验证集（Phase 0 任务）。</p><div class="tagline"><span class="tag teal">2,617 eps</span><span class="tag teal">LeRobot v2.0</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">03</span> · TRAIN</div><div class="panel-title">训练 FrozenVLA</div><p class="panel-text">用 <code style="font-family:var(--mono);font-size:12px;background:var(--paper-2);padding:1px 5px;border-radius:var(--r-xs);color:var(--accent-2)">train/train.py</code> 跑 baseline；或用 <code style="font-family:var(--mono);font-size:12px;background:var(--paper-2);padding:1px 5px;border-radius:var(--r-xs);color:var(--accent-2)">train_1.1/</code> 跑双路线。Action Chunking K=16。</p><div class="tagline"><span class="tag amber">Route A</span><span class="tag amber">Route B</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">04</span> · EVAL</div><div class="panel-title">Rollout 评估</div><p class="panel-text">PyBullet sim rollout：给指令 + 初始图像 → 模型循环输出动作 → 统计成功率。禁止只用 MSE loss 判断。</p><div class="tagline"><span class="tag green">sim rollout</span><span class="tag green">成功率</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">05</span> · DEPLOY</div><div class="panel-title">边缘部署</div><p class="panel-text">INT4 量化 + Action Chunking 异步执行。Jetson 做实时控制，K3 做信创替代，EEF delta → IK 转换。</p><div class="tagline"><span class="tag blue">Jetson</span><span class="tag blue">K3</span><span class="tag blue">&lt;2s</span></div></div>
+      <div class="panel"><div class="panel-idx"><span class="n">06</span> · CONTRIB</div><div class="panel-title">参与贡献</div><p class="panel-text">模型权重已在 HuggingFace 开源。代码与硬件设计将在 Phase 1 后发布 GitHub。欢迎 issue 与 PR。</p><div class="tagline"><span class="tag teal">Apache 2.0</span><span class="tag teal">CC BY-SA 4.0</span></div></div>
+    </div>
+  </div></section>
+
+  <section class="section" style="background:linear-gradient(180deg,transparent,var(--paper-2),transparent)"><div class="section-inner">
+    <div class="section-head center reveal"><div class="section-tag">FAQ · 常见问题</div><h2 class="section-title">你可能想问的</h2></div>
+    <div style="max-width:780px;margin:0 auto" class="reveal">
+      <div class="faq-list" id="faqList">
+        <div class="faq-item"><div class="faq-q">这个模型能直接用在 SO-ARM101 上吗？ <span class="arrow">+</span></div><div class="faq-a">不能直接用。模型输出的是 EEF delta 7D（与 BridgeData 的 WidowX 一致），需要部署端用 IK 转换为关节角。项目 <code style="font-family:var(--mono);font-size:12px;background:var(--paper-2);padding:1px 5px;border-radius:var(--r-xs);color:var(--accent-2)">deploy/eef_delta_to_joints.py</code> 提供了 PyBullet IK 转换。换机械臂只需调校 IK 参数，无需重训。</div></div>
+        <div class="faq-item"><div class="faq-q">为什么用 MSE 回归？不是说落后吗？ <span class="arrow">+</span></div><div class="faq-a">MSE 回归是 v1.0 baseline，确实是 2022 范式，落后约 2 年——它无法处理多模态动作分布、无 Action Chunking、无 rollout 评估。我们保留它作为参照基线，并在 <code style="font-family:var(--mono);font-size:12px;background:var(--paper-2);padding:1px 5px;border-radius:var(--r-xs);color:var(--accent-2)">train_1.1/</code> 实现了离散化+LoRA 与扩散策略两条现代路线，Phase 1 第 8 周二选一。</div></div>
+        <div class="faq-item"><div class="faq-q">VRAM 只有 4GB，真的能跑？ <span class="arrow">+</span></div><div class="faq-a">能。因为 Qwen3-VL-2B 完全冻结（不存梯度），只有 1.3M 的 MLP+Head 可训练。RTX 4060 Laptop 8GB 已实测验证，sdpa attention + bf16 下 VRAM 约 4GB。A10 24GB 是训练环境，T4 16GB 理论也可行。</div></div>
+        <div class="faq-item"><div class="faq-q">K3 还在做吗？定位是什么？ <span class="arrow">+</span></div><div class="faq-a">K3 仍是项目的一部分，但不再是唯一叙事。它是"多线算力"中的国产替代路线，面向信创场景。Jetson 负责实时边缘部署，RTX 负责前沿训练，K3 解决自主可控——三者互补不互斥。Phase 4 会做 K3 的 INT4 量化推理优化。</div></div>
+        <div class="faq-item"><div class="faq-q">数据集是真实的吗？ <span class="arrow">+</span></div><div class="faq-a">是。使用的是真实的 BridgeData V2（2,617 episodes，WidowX 机械臂采集），已转为 LeRobot 格式。没有虚构的 Desktop-Op 数据集。Phase 2 会集成 RH20T/DROID 并自建 SO-ARM101 数据。</div></div>
+      </div>
+    </div>
+  </div></section>
+</div>
+
+<!-- ===================== 联系 ===================== -->
+<div class="page" id="page-contact">
+  <section class="section"><div class="section-inner">
+    <div class="section-head reveal">
+      <div class="section-tag">CONTACT · 联系</div>
+      <h2 class="section-title">交流与合作</h2>
+      <p class="section-sub">技术问题、模型使用、合作意向——欢迎通过 HuggingFace 或邮件联系。</p>
+    </div>
+    <div class="grid grid-2 reveal" style="align-items:start;gap:28px;max-width:1000px;margin:0 auto">
+      <div class="panel" style="padding:30px">
+        <h3 style="font-family:var(--serif);font-size:19px;font-weight:600;margin-bottom:14px;color:var(--ink)">联系方式</h3>
+        <div style="display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line)">
+          <div style="width:36px;height:36px;border:1px solid var(--line-2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--paper-2)">🤗</div>
+          <div><div style="font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:0.06em;margin-bottom:2px">HUGGINGFACE</div><div style="font-family:var(--mono);font-size:13px;color:var(--ink)">LingArm/LingArm_frozen_preview</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line)">
+          <div style="width:36px;height:36px;border:1px solid var(--line-2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--paper-2)">📧</div>
+          <div><div style="font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:0.06em;margin-bottom:2px">EMAIL</div><div style="font-family:var(--mono);font-size:13px;color:var(--ink)">contact@lingarm.ai</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:13px;padding:13px 0">
+          <div style="width:36px;height:36px;border:1px solid var(--line-2);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--paper-2)">🐙</div>
+          <div><div style="font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:0.06em;margin-bottom:2px">GITHUB</div><div style="font-family:var(--mono);font-size:13px;color:var(--ink-3)">github.com/lingarm（待建）</div></div>
+        </div>
+        <div class="note info" style="margin-top:18px">
+          <span class="ico">✦</span>
+          <span>GitHub 仓库将在 Phase 1 方法论选定后建立。当前最直接的交流入口是 HuggingFace 模型页面。</span>
+        </div>
+      </div>
+      <form class="panel" style="padding:30px" onsubmit="event.preventDefault(); showToast('感谢留言！我们会尽快回复', 'success')">
+        <h3 style="font-family:var(--serif);font-size:19px;font-weight:600;margin-bottom:20px;color:var(--ink)">给我们留言</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+          <div><label style="display:block;font-family:var(--mono);font-size:10.5px;font-weight:600;margin-bottom:7px;color:var(--ink-2);letter-spacing:0.06em;text-transform:uppercase">姓名</label><input type="text" placeholder="您的姓名" required style="width:100%;padding:10px 13px;border:1px solid var(--line-2);border-radius:var(--r-sm);font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink)"></div>
+          <div><label style="display:block;font-family:var(--mono);font-size:10.5px;font-weight:600;margin-bottom:7px;color:var(--ink-2);letter-spacing:0.06em;text-transform:uppercase">邮箱</label><input type="email" placeholder="your@email.com" required style="width:100%;padding:10px 13px;border:1px solid var(--line-2);border-radius:var(--r-sm);font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink)"></div>
+        </div>
+        <div style="margin-bottom:16px"><label style="display:block;font-family:var(--mono);font-size:10.5px;font-weight:600;margin-bottom:7px;color:var(--ink-2);letter-spacing:0.06em;text-transform:uppercase">主题</label><select style="width:100%;padding:10px 13px;border:1px solid var(--line-2);border-radius:var(--r-sm);font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink)"><option>模型使用咨询</option><option>训练代码问题</option><option>合作意向</option><option>加入团队</option><option>其他</option></select></div>
+        <div style="margin-bottom:16px"><label style="display:block;font-family:var(--mono);font-size:10.5px;font-weight:600;margin-bottom:7px;color:var(--ink-2);letter-spacing:0.06em;text-transform:uppercase">留言</label><textarea placeholder="请描述您的问题或需求..." required style="width:100%;min-height:110px;padding:10px 13px;border:1px solid var(--line-2);border-radius:var(--r-sm);font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink);resize:vertical"></textarea></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;justify-content:center">发送留言 →</button>
+      </form>
+    </div>
+  </div></section>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><div class="lm">灵</div><div>灵臂 LingArm<small>LOW-COST VLA</small></div></div>
+        <p class="footer-tagline">面向桌面级机械臂的低成本具身智能研究系统。打通数据—训练—部署全链路，多线算力并行，既国产替代也前沿训练。</p>
+        <div class="tagline" style="margin-top:14px"><span class="tag blue">Qwen3-VL-2B</span><span class="tag teal">Jetson</span><span class="tag teal">RTX</span><span class="tag amber">K3 RISC-V</span><span class="tag">Apache 2.0</span></div>
+      </div>
+      <div class="footer-col"><h4>// 项目</h4><a onclick="switchPage('page-intro')">项目简介</a><a onclick="switchPage('page-models')">模型与数据</a><a onclick="switchPage('page-repo')">资源</a><a onclick="switchPage('page-tutorial')">教程</a></div>
+      <div class="footer-col"><h4>// 资源</h4><a href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">HuggingFace 模型</a><a onclick="switchPage('page-repo')">训练代码</a><a onclick="switchPage('page-repo')">方案文档</a><a onclick="switchPage('page-tutorial')">FAQ</a></div>
+      <div class="footer-col"><h4>// 联系</h4><a onclick="switchPage('page-contact')">联系我们</a><a href="https://huggingface.co/LingArm/LingArm_frozen_preview" target="_blank" rel="noopener">模型讨论区</a><a onclick="switchPage('page-contact')">加入团队</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 LINGARM · APACHE 2.0 LICENSE · WHITEBOARD v3.0</span><span>BUILT FOR LOW-COST EMBODIED AI · MULTI-PLATFORM</span></div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"><div class="toast-icon" id="toastIcon">✓</div><div class="toast-msg" id="toastMsg">操作成功</div></div>
+
+<script>
+function switchPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  var activeNav = document.querySelector('.nav-item[data-page="' + pageId + '"]');
+  if (activeNav) activeNav.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(initReveal, 100);
+}
+document.querySelectorAll('.nav-item').forEach(function(item){ item.addEventListener('click', function(){ switchPage(item.dataset.page); }); });
+
+var navbar = document.getElementById('navbar');
+window.addEventListener('scroll', function(){ if (window.scrollY > 40) navbar.classList.add('scrolled'); else navbar.classList.remove('scrolled'); revealOnScroll(); });
+
+// FAQ
+document.querySelectorAll('.faq-q').forEach(function(q){ q.addEventListener('click', function(){ q.parentElement.classList.toggle('open'); }); });
+var style = document.createElement('style');
+style.textContent = '.faq-item{border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:10px;overflow:hidden;background:var(--paper);transition:border-color .2s}.faq-item.open{border-color:var(--accent-line)}.faq-q{padding:17px 21px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:14px;gap:14px;color:var(--ink)}.faq-q .arrow{font-family:var(--mono);font-size:18px;color:var(--accent);transition:transform .3s var(--ease);flex-shrink:0}.faq-item.open .faq-q .arrow{transform:rotate(45deg)}.faq-a{max-height:0;overflow:hidden;transition:max-height .3s var(--ease),padding .3s var(--ease);padding:0 21px;color:var(--ink-2);font-size:13.5px;line-height:1.75}.faq-item.open .faq-a{max-height:380px;padding:0 21px 19px}';
+document.head.appendChild(style);
+
+document.getElementById('starBtn').addEventListener('click', function(){
+  window.open('https://huggingface.co/LingArm/LingArm_frozen_preview', '_blank');
+  showToast('已打开 HuggingFace，欢迎 Star 与使用', 'success');
+});
+
+function initReveal(){ document.querySelectorAll('.reveal').forEach(function(el){ el.classList.remove('visible'); }); revealOnScroll(); }
+function revealOnScroll(){ document.querySelectorAll('.reveal').forEach(function(el){ var rect = el.getBoundingClientRect(); if (rect.top < window.innerHeight - 80) el.classList.add('visible'); }); }
+
+var toast = document.getElementById('toast');
+var toastIcon = document.getElementById('toastIcon');
+var toastMsg = document.getElementById('toastMsg');
+var toastTimer;
+function showToast(msg, type){
+  toast.classList.remove('success');
+  if (type === 'success') { toast.classList.add('success'); toastIcon.textContent = '✓'; } else { toastIcon.textContent = 'i'; }
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 3000);
+}
+
+initReveal();
+console.log('%c灵臂 LingArm · Whiteboard v3.0', 'font-size:16px; color:#2563eb; font-weight:bold; font-family:monospace');
+console.log('%cLow-cost VLA · Multi-platform · Open source', 'font-size:11px; color:#0d9488; font-family:monospace');
+console.log('%c● huggingface.co/LingArm/LingArm_frozen_preview', 'font-size:11px; color:#15803d; font-family:monospace');
+</script>
+
+</body>
+</html>
